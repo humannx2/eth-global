@@ -12,13 +12,69 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Plus, Timer, Users, AlertTriangle } from 'lucide-react'
+import { Loader2, Plus, Timer, Users, AlertTriangle, Target } from 'lucide-react'
 import { roomFactoryAbi } from '@/lib/wagmi-generated'
 import { ExerciseConfigGenerator } from '@/components/ExerciseConfigGenerator'
 import { getContractAddress, isContractDeployed } from '@/lib/contracts'
 import { useChainId } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 import type { ExerciseConfig } from '@/lib/mediapipe-utils'
+
+// Optimized exercise configurations for demo
+function getOptimizedExerciseConfig(exerciseType: string): ExerciseConfig {
+  const normalizedType = exerciseType.toLowerCase()
+  
+  if (normalizedType.includes('pushup') || normalizedType.includes('push-up') || normalizedType.includes('push up')) {
+    return {
+      name: 'pushup',
+      initialDirection: 'up', // Start with arms extended
+      minPeakDistance: 8, // Reasonable distance for push-up tempo
+      anglePoints: [
+        {
+          name: 'left_elbow',
+          points: [11, 13, 15], // LEFT_SHOULDER, LEFT_ELBOW, LEFT_WRIST
+          weight: 1.0,
+          targetLowAngle: 45,   // Deep push-up (arms very bent)
+          targetHighAngle: 160  // Arms extended
+        },
+        {
+          name: 'right_elbow',
+          points: [12, 14, 16], // RIGHT_SHOULDER, RIGHT_ELBOW, RIGHT_WRIST
+          weight: 1.0,
+          targetLowAngle: 45,
+          targetHighAngle: 160
+        }
+      ]
+    }
+  }
+  
+  if (normalizedType.includes('squat')) {
+    return {
+      name: 'squat',
+      initialDirection: 'up',
+      minPeakDistance: 10,
+      anglePoints: [
+        {
+          name: 'left_knee',
+          points: [23, 25, 27], // LEFT_HIP, LEFT_KNEE, LEFT_ANKLE
+          weight: 1.0,
+          targetLowAngle: 90,
+          targetHighAngle: 170
+        },
+        {
+          name: 'right_knee',
+          points: [24, 26, 28], // RIGHT_HIP, RIGHT_KNEE, RIGHT_ANKLE
+          weight: 1.0,
+          targetLowAngle: 90,
+          targetHighAngle: 170
+        }
+      ]
+    }
+  }
+  
+  // Default to push-up config
+  return getOptimizedExerciseConfig('pushups')
+}
 
 export default function CreateRoomPage() {
   const router = useRouter()
@@ -29,6 +85,7 @@ export default function CreateRoomPage() {
   const [stakeAmount, setStakeAmount] = useState('')
   const [duration, setDuration] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
+  const [configError, setConfigError] = useState<string | null>(null)
 
   // Check if contracts are deployed on current chain
   const isSupported = isContractDeployed(chainId, 'RoomFactory')
@@ -40,10 +97,16 @@ export default function CreateRoomPage() {
 
   const handleConfigGenerated = (config: ExerciseConfig) => {
     setGeneratedConfig(config)
+    setConfigError(null)
     // Auto-fill exercise type if it matches the config name
     if (config.name && !exerciseType) {
       setExerciseType(config.name.replace(/_/g, ' '))
     }
+  }
+
+  const handleConfigError = (error: string) => {
+    setConfigError(error)
+    setGeneratedConfig(null)
   }
 
   const handleCreateRoom = async (e: React.FormEvent) => {
@@ -62,29 +125,8 @@ export default function CreateRoomPage() {
     const durationInSeconds = parseInt(duration) * 60 // Convert minutes to seconds
     const stakeAmountWei = parseEther(stakeAmount)
 
-    // Use generated config or default config for pushups if not provided
-    const configToUse = generatedConfig ? JSON.stringify(generatedConfig) : JSON.stringify({
-      name: 'pushup',
-      initialDirection: 'up',
-      inverted: true,
-      minPeakDistance: 10,
-      anglePoints: [
-        {
-          name: 'left_elbow',
-          points: [11, 13, 15],
-          weight: 1.0,
-          targetLowAngle: 60,
-          targetHighAngle: 160
-        },
-        {
-          name: 'right_elbow',
-          points: [12, 14, 16],
-          weight: 1.0,
-          targetLowAngle: 60,
-          targetHighAngle: 160
-        }
-      ]
-    })
+    // Use generated config if available, otherwise use optimized hardcoded config
+    const configToUse = generatedConfig ? JSON.stringify(generatedConfig) : JSON.stringify(getOptimizedExerciseConfig(exerciseType))
 
     try {
       writeContract({
@@ -257,18 +299,53 @@ export default function CreateRoomPage() {
                 </p>
               </div>
 
-              {/* AI Exercise Configuration Generator */}
+              {/* AI Exercise Configuration Generator - OPTIONAL */}
               <div className="space-y-4">
-                <ExerciseConfigGenerator onConfigGenerated={handleConfigGenerated} />
+                <div className="flex items-center gap-2">
+                  <Label className="text-base font-medium">Exercise Configuration</Label>
+                  <Badge variant="secondary" className="text-xs">OPTIONAL</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Generate a custom AI-powered MediaPipe configuration, or use our optimized defaults for common exercises.
+                </p>
                 
-                {generatedConfig && (
+                <ExerciseConfigGenerator 
+                  onConfigGenerated={handleConfigGenerated}
+                  onError={handleConfigError}
+                />
+                
+                {configError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      {configError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {generatedConfig ? (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
                       <Plus className="h-4 w-4" />
-                      AI Configuration Generated
+                      AI Configuration Generated ✓
                     </div>
-                    <p className="text-sm text-green-700">
-                      Generated MediaPipe configuration for &quot;{generatedConfig.name}&quot; will be used for pose tracking.
+                    <p className="text-sm text-green-700 mb-2">
+                      Generated MediaPipe configuration for &quot;{generatedConfig.name}&quot; with {generatedConfig.anglePoints.length} tracking points.
+                    </p>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <div>• Initial Direction: {generatedConfig.initialDirection}</div>
+                      <div>• Peak Distance: {generatedConfig.minPeakDistance} frames</div>
+                      <div>• Tracking Points: {generatedConfig.anglePoints.length}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-800 font-medium mb-2">
+                      <Target className="h-4 w-4" />
+                      Using Optimized Default Configuration
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      Will use our pre-optimized MediaPipe configuration for &quot;{exerciseType || 'selected exercise'}&quot; with proven accuracy.
                     </p>
                   </div>
                 )}
@@ -292,9 +369,13 @@ export default function CreateRoomPage() {
                   <div className="text-sm text-muted-foreground">
                     Stake: {stakeAmount || '0'} ETH per participant
                   </div>
-                  {generatedConfig && (
+                  {generatedConfig ? (
                     <div className="text-sm text-green-600">
-                      ✓ AI-generated pose configuration ready
+                      ✓ Using AI-generated pose configuration
+                    </div>
+                  ) : (
+                    <div className="text-sm text-blue-600">
+                      ✓ Using optimized default configuration
                     </div>
                   )}
                 </div>

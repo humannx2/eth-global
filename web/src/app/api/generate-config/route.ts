@@ -9,7 +9,6 @@ const ExerciseConfigSchema = z.object({
   name: z.string(),
   initialDirection: z.enum(['up', 'down']),
   minPeakDistance: z.number().min(5).max(20),
-  inverted: z.boolean(),
   anglePoints: z.array(z.object({
     name: z.string(),
     points: z.tuple([z.number(), z.number(), z.number()]),
@@ -46,9 +45,10 @@ ${Object.entries(LANDMARK_INDICES).map(([name, index]) => `${name}: ${index}`).j
 GUIDELINES:
 1. Use joint angles for tracking: [shoulder, elbow, wrist] for arms, [hip, knee, ankle] for legs
 2. Set realistic target ranges: Push-up elbow 60°-160°, Squat knee 90°-170°, Bicep curl 45°-150°
-3. Use inverted=true when smaller angles = exercise "up" position
+3. Use realistic target ranges: Push-up elbow 60°-160°, Squat knee 90°-170°, Bicep curl 45°-150°
 4. Include both left and right sides when possible
 5. Set appropriate minPeakDistance: 5-8 for fast, 8-12 for moderate, 12-20 for slow exercises
+6. All angles are positive (0-180 degrees) - no negative angle complexity needed
 
 Respond with a valid JSON object that matches the schema exactly.`
 
@@ -88,7 +88,6 @@ Generate a complete MediaPipe pose tracking configuration for this exercise. Foc
     const fallbackConfig = {
       name: exerciseName.toLowerCase().replace(/\s+/g, '_'),
       initialDirection: 'up' as const,
-      inverted: true,
       minPeakDistance: 10,
       anglePoints: [
         {

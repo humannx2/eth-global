@@ -11,7 +11,6 @@ import {
   StopCircle, 
   Target, 
   Zap, 
-  CheckCircle,
   AlertCircle,
   Loader2
 } from 'lucide-react'
@@ -22,23 +21,11 @@ import {
   type RepSegment,
   getExerciseConfig 
 } from '@/lib/mediapipe-utils'
-
-// For now, we'll simulate MediaPipe since the model files need to be hosted
-// In a real deployment, you'd host the MediaPipe model files and use the actual MediaPipe library
-let PoseLandmarker: any = null
-let FilesetResolver: any = null
-
-// Try to import MediaPipe, but handle gracefully if not available
-try {
-  const mediapipe = require('@mediapipe/tasks-vision')
-  PoseLandmarker = mediapipe.PoseLandmarker
-  FilesetResolver = mediapipe.FilesetResolver
-} catch (error) {
-  console.log('MediaPipe not available, using simulation mode')
-}
+import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
 
 interface MediaPipeWorkoutProps {
   exerciseType: string
+  exerciseConfig?: ExerciseConfig | string
   onWorkoutComplete: (data: {
     repCount: number
     formScore: number
@@ -58,6 +45,7 @@ interface MediaPipeLandmark {
 
 export function MediaPipeWorkout({ 
   exerciseType, 
+  exerciseConfig: providedConfig,
   onWorkoutComplete, 
   onWorkoutStart,
   onWorkoutStop 
@@ -65,419 +53,206 @@ export function MediaPipeWorkout({
   // Refs for video and canvas elements
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawingUtilsRef = useRef<DrawingUtils | null>(null)
   
   // MediaPipe state
-  const [poseLandmarker, setPoseLandmarker] = useState<any>(null)
+  const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [initError, setInitError] = useState<string | null>(null)
-  const [isSimulationMode, setIsSimulationMode] = useState(false)
   
   // Workout state
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
+  const [isCameraActive, setIsCameraActive] = useState(false)
   const [currentStream, setCurrentStream] = useState<MediaStream | null>(null)
   
   // Exercise tracking
   const [repCount, setRepCount] = useState(0)
   const [poseHistory, setPoseHistory] = useState<Pose[]>([])
-  const [lastProcessedRepCount, setLastProcessedRepCount] = useState(0)
-  const [repSegments, setRepSegments] = useState<RepSegment[]>([])
   const [exerciseConfig, setExerciseConfig] = useState<ExerciseConfig | null>(null)
   
   // Form analysis
   const [formScore, setFormScore] = useState(0)
   const [feedback, setFeedback] = useState<string>('')
+  const [error, setError] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastProcessedRepCount, setLastProcessedRepCount] = useState(0)
+  const [repSegments, setRepSegments] = useState<RepSegment[]>([])
   
-  // Simulation state
-  const [simulationTimer, setSimulationTimer] = useState<NodeJS.Timeout | null>(null)
-  
-  // Initialize MediaPipe or simulation mode
+  // Frame rate limiting for performance optimization
+  const [lastDetectionTime, setLastDetectionTime] = useState<number>(0)
+  const mediapipeTimestampRef = useRef<number>(0)
+  const DETECTION_INTERVAL_MS = 100 // 10 FPS (1000ms / 10 = 100ms)
+
+  // Initialize MediaPipe
   useEffect(() => {
-    let mounted = true
-    
-    async function initializeMediaPipe() {
+    const initializeMediaPipe = async () => {
       try {
-        // Check if MediaPipe is available and model files are accessible
-        if (PoseLandmarker && FilesetResolver) {
-          const vision = await FilesetResolver.forVisionTasks(
+        setIsLoading(true)
+        setInitError(null)
+
+        console.log('Initializing MediaPipe...')
+        
+        // Initialize FilesetResolver - try CDN first, fallback to local
+        let vision
+        try {
+          vision = await FilesetResolver.forVisionTasks(
             'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
           )
-          
-          if (!mounted) return
-          
-          const landmarker = await PoseLandmarker.createFromOptions(vision, {
-            baseOptions: {
-              modelAssetPath: '/mediapipe/pose_landmarker_heavy.task',
-              delegate: 'GPU'
-            },
-            runningMode: 'VIDEO',
-            numPoses: 1,
-            minPoseDetectionConfidence: 0.5,
-            minPosePresenceConfidence: 0.5,
-            minTrackingConfidence: 0.5
-          })
-          
-          if (!mounted) return
-          
-          setPoseLandmarker(landmarker)
-          setIsInitialized(true)
-          setInitError(null)
-        } else {
-          // Fall back to simulation mode
-          if (mounted) {
-            setIsSimulationMode(true)
-            setIsInitialized(true)
-            setInitError(null)
+        } catch (error) {
+          console.warn('CDN failed, trying local files:', error)
+          vision = await FilesetResolver.forVisionTasks('/mediapipe')
+        }
+        
+
+        // Try to load the heavier full model for better accuracy
+        let modelAssetPath = '/pose_landmarker_full.task';
+        let landmarker: PoseLandmarker | null = null;
+        try {
+          // Try to fetch the full model to check if it exists
+          await fetch(modelAssetPath, { method: 'HEAD' });
+          console.log('Using full pose model:', modelAssetPath);
+        } catch {
+          // Fallback to the default lightweight model
+          modelAssetPath = '/pose_landmarker.task';
+          console.log('Full model not found, using lightweight model:', modelAssetPath);
+        }
+        landmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath,
+            delegate: 'GPU'
+          },
+          runningMode: 'VIDEO',
+          numPoses: 1
+        });
+
+        setPoseLandmarker(landmarker)
+        setIsInitialized(true)
+        console.log('MediaPipe initialized successfully!')
+
+        // Initialize drawing utils
+        if (canvasRef.current) {
+          const canvasCtx = canvasRef.current.getContext('2d')
+          if (canvasCtx) {
+            drawingUtilsRef.current = new DrawingUtils(canvasCtx)
+            console.log('Drawing utils initialized')
           }
         }
-      } catch (error) {
-        console.error('Failed to initialize MediaPipe, falling back to simulation:', error)
-        if (mounted) {
-          setIsSimulationMode(true)
-          setIsInitialized(true)
-          setInitError(null)
+        
+        setIsLoading(false)
+        
+        // If camera is already active, start detection
+        if (isCameraActive) {
+          console.log('Camera already active, starting detection...')
+          setIsDetecting(true)
         }
+        
+      } catch (error) {
+        console.error('Failed to initialize MediaPipe:', error)
+        setInitError(`Failed to initialize pose detection: ${error}`)
+      } finally {
+        setIsLoading(false)
       }
     }
-    
+
     initializeMediaPipe()
-    
-    return () => {
-      mounted = false
-    }
   }, [])
-  
-  // Generate simulated pose data for demonstration
-  const generateSimulatedPose = (frameIndex: number): Pose => {
-    const config = getExerciseConfig(exerciseType)
-    if (!config) return []
-    
-    // Create a basic pose structure with 33 landmarks
-    const basePose: Pose = Array(33).fill(null).map((_, i) => ({
-      x: 0.5 + Math.sin(frameIndex * 0.1) * 0.1 * Math.random(),
-      y: 0.5 + Math.cos(frameIndex * 0.1) * 0.1 * Math.random(),
-      z: 0,
-      visibility: 0.9
-    }))
-    
-    // Simulate realistic movement for the specific exercise
-    const time = frameIndex * 0.1
-    if (exerciseType.includes('pushup') || exerciseType.includes('push')) {
-      // Simulate push-up elbow movement
-      const elbowAngle = 90 + 60 * Math.sin(time * 0.8) // Elbow flexion/extension
-      const shoulderY = 0.4
-      const elbowY = shoulderY + 0.15
-      const wristY = elbowY + 0.15
-      
-      // Left arm
-      basePose[11] = { x: 0.35, y: shoulderY, z: 0, visibility: 0.9 } // Left shoulder
-      basePose[13] = { x: 0.25, y: elbowY, z: 0, visibility: 0.9 }   // Left elbow
-      basePose[15] = { x: 0.15, y: wristY, z: 0, visibility: 0.9 }   // Left wrist
-      
-      // Right arm
-      basePose[12] = { x: 0.65, y: shoulderY, z: 0, visibility: 0.9 } // Right shoulder
-      basePose[14] = { x: 0.75, y: elbowY, z: 0, visibility: 0.9 }   // Right elbow
-      basePose[16] = { x: 0.85, y: wristY, z: 0, visibility: 0.9 }   // Right wrist
-    } else if (exerciseType.includes('squat')) {
-      // Simulate squat knee movement
-      const kneeAngle = 160 - 70 * Math.abs(Math.sin(time * 0.6)) // Knee flexion
-      const hipY = 0.5
-      const kneeY = hipY + 0.25
-      const ankleY = kneeY + 0.25
-      
-      // Left leg
-      basePose[23] = { x: 0.45, y: hipY, z: 0, visibility: 0.9 }    // Left hip
-      basePose[25] = { x: 0.45, y: kneeY, z: 0, visibility: 0.9 }   // Left knee
-      basePose[27] = { x: 0.45, y: ankleY, z: 0, visibility: 0.9 }  // Left ankle
-      
-      // Right leg
-      basePose[24] = { x: 0.55, y: hipY, z: 0, visibility: 0.9 }    // Right hip
-      basePose[26] = { x: 0.55, y: kneeY, z: 0, visibility: 0.9 }   // Right knee
-      basePose[28] = { x: 0.55, y: ankleY, z: 0, visibility: 0.9 }  // Right ankle
-    }
-    
-    return basePose
-  }
-  
-  // Process video frame for pose detection
-  const processFrame = useCallback(() => {
-    if (!canvasRef.current || !isDetecting) {
-      return
-    }
-    
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    
-    if (!ctx) {
-      requestAnimationFrame(processFrame)
-      return
-    }
-    
-    try {
-      // Clear canvas
-      ctx.save()
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      
-      if (isSimulationMode) {
-        // Simulation mode - generate fake pose data
-        const frameIndex = poseHistory.length
-        const pose = generateSimulatedPose(frameIndex)
-        
-        // Add to pose history
-        setPoseHistory(prev => {
-          const newHistory = [...prev, pose]
-          return newHistory.slice(-300) // Keep last 300 frames
-        })
-        
-        // Draw simulated video background
-        ctx.fillStyle = '#1a1a1a'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        
-        // Draw "SIMULATION MODE" text
-        ctx.fillStyle = '#ffffff'
-        ctx.font = '20px Arial'
-        ctx.textAlign = 'center'
-        ctx.fillText('SIMULATION MODE', canvas.width / 2, 30)
-        ctx.font = '14px Arial'
-        ctx.fillText('Demo: Simulated pose tracking for ' + exerciseType, canvas.width / 2, 55)
-        
-        // Draw pose connections and landmarks
-        drawPoseConnections(ctx, pose, canvas.width, canvas.height)
-        drawPoseLandmarks(ctx, pose, canvas.width, canvas.height)
-        
-      } else if (poseLandmarker && videoRef.current && videoRef.current.videoWidth > 0) {
-        // Real MediaPipe mode
-        const result = poseLandmarker.detectForVideo(videoRef.current, performance.now())
-        
-        // Draw the video frame
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-        
-        // Draw pose landmarks if detected
-        if (result.landmarks && result.landmarks.length > 0) {
-          const landmarks = result.landmarks[0]
-          
-          // Convert to our pose format
-          const pose: Pose = landmarks.map((landmark: MediaPipeLandmark) => ({
-            x: landmark.x,
-            y: landmark.y,
-            z: landmark.z,
-            visibility: landmark.visibility || 1
-          }))
-          
-          // Add to pose history
-          setPoseHistory(prev => {
-            const newHistory = [...prev, pose]
-            return newHistory.slice(-300)
-          })
-          
-          // Draw pose connections and landmarks
-          drawPoseConnections(ctx, pose, canvas.width, canvas.height)
-          drawPoseLandmarks(ctx, pose, canvas.width, canvas.height)
-        }
-      }
-      
-      ctx.restore()
-      
-      if (isDetecting) {
-        requestAnimationFrame(processFrame)
-      }
-    } catch (error) {
-      console.error('Error processing frame:', error)
-    }
-  }, [poseLandmarker, isDetecting, isSimulationMode, exerciseType, poseHistory.length])
-  
-  // Process pose history for rep counting
+
+  // Setup exercise config
   useEffect(() => {
-    if (!isWorkoutActive || poseHistory.length < 20) return
+    let config: ExerciseConfig | null = null
     
-    async function analyzeReps() {
-      try {
-        const result = await processExerciseReps(
-          poseHistory,
-          exerciseType,
-          lastProcessedRepCount
-        )
-        
-        if (result.repCount > repCount) {
-          setRepCount(result.repCount)
-          setRepSegments(prev => [...prev, ...result.newRepSegments])
-          setLastProcessedRepCount(result.repCount)
-          
-          // Calculate form score based on rep segments
-          if (result.newRepSegments.length > 0) {
-            const latestSegment = result.newRepSegments[result.newRepSegments.length - 1]
-            const formAnalysis = analyzeRepForm(latestSegment, result.configUsed)
-            setFormScore(Math.round((formScore * (repCount - 1) + formAnalysis.score) / repCount))
-            setFeedback(formAnalysis.feedback)
-          }
+    if (providedConfig) {
+      // Use provided config (from contract)
+      if (typeof providedConfig === 'string') {
+        try {
+          config = JSON.parse(providedConfig)
+          console.log('Using contract exercise config:', config)
+        } catch (error) {
+          console.error('Failed to parse exercise config from contract:', error)
+          console.error('Config string:', providedConfig)
+          // Fall back to predefined config
+          config = getExerciseConfig(exerciseType)
         }
-        
-        setExerciseConfig(result.configUsed)
-      } catch (error) {
-        console.error('Error analyzing reps:', error)
+      } else {
+        config = providedConfig
+        console.log('Using provided exercise config object:', config)
       }
+    } else {
+      // Use predefined config
+      config = getExerciseConfig(exerciseType)
+      console.log('Using predefined exercise config for:', exerciseType)
     }
     
-    // Debounce the analysis to avoid excessive calls
-    const timeoutId = setTimeout(analyzeReps, 100)
-    return () => clearTimeout(timeoutId)
-  }, [poseHistory, exerciseType, isWorkoutActive, repCount, lastProcessedRepCount, formScore])
-  
-  const analyzeRepForm = (repSegment: RepSegment, config: ExerciseConfig | null) => {
-    if (!repSegment.angles.length || !config) {
-      return { score: 70, feedback: 'Form analysis unavailable' }
+    if (!config) {
+      console.error('No exercise configuration available for:', exerciseType)
+      setInitError('No exercise configuration found. Please try a different exercise type.')
+      return
     }
     
-    const angles = repSegment.angles.map(a => a.angle)
-    const minAngle = Math.min(...angles)
-    const maxAngle = Math.max(...angles)
-    const rangeOfMotion = maxAngle - minAngle
-    
-    // Simple scoring based on range of motion
-    let score = 70 // Base score
-    
-    // Check if rep achieved good range of motion
-    if (rangeOfMotion > 60) {
-      score += 20
-    } else if (rangeOfMotion > 40) {
-      score += 10
-    }
-    
-    // Check rep duration (should be controlled, not too fast)
-    if (repSegment.duration > 800 && repSegment.duration < 3000) {
-      score += 10
-    }
-    
-    score = Math.min(100, score)
-    
-    const feedback = score >= 85 ? 'Excellent form!' : 
-                    score >= 75 ? 'Good rep, maintain control' : 
-                    'Focus on full range of motion'
-    
-    return { score, feedback }
-  }
-  
-  const drawPoseConnections = (ctx: CanvasRenderingContext2D, pose: Pose, width: number, height: number) => {
-    const connections = [
-      // Torso
-      [11, 12], [11, 23], [12, 24], [23, 24],
-      // Left arm
-      [11, 13], [13, 15],
-      // Right arm  
-      [12, 14], [14, 16],
-      // Left leg
-      [23, 25], [25, 27],
-      // Right leg
-      [24, 26], [26, 28]
-    ]
-    
-    ctx.strokeStyle = '#00ff00'
-    ctx.lineWidth = 2
-    
-    connections.forEach(([start, end]) => {
-      const startPoint = pose[start]
-      const endPoint = pose[end]
-      
-      if (startPoint && endPoint && 
-          startPoint.visibility && startPoint.visibility > 0.5 &&
-          endPoint.visibility && endPoint.visibility > 0.5) {
-        ctx.beginPath()
-        ctx.moveTo(startPoint.x * width, startPoint.y * height)
-        ctx.lineTo(endPoint.x * width, endPoint.y * height)
-        ctx.stroke()
-      }
-    })
-  }
-  
-  const drawPoseLandmarks = (ctx: CanvasRenderingContext2D, pose: Pose, width: number, height: number) => {
-    ctx.fillStyle = '#ff0000'
-    
-    pose.forEach((landmark, index) => {
-      if (landmark && landmark.visibility && landmark.visibility > 0.5) {
-        ctx.beginPath()
-        ctx.arc(
-          landmark.x * width,
-          landmark.y * height,
-          3,
-          0,
-          2 * Math.PI
-        )
-        ctx.fill()
-      }
-    })
-  }
-  
-  const startWorkout = async () => {
+    setExerciseConfig(config)
+  }, [providedConfig, exerciseType])
+
+  // Start camera
+  const startCamera = async () => {
     try {
-      if (!isInitialized) {
-        throw new Error('Pose detection not initialized')
-      }
+      setError('')
+      console.log('Starting camera...')
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: 640, 
+          height: 480,
+          facingMode: 'user'
+        } 
+      })
       
-      if (canvasRef.current) {
-        const canvas = canvasRef.current
-        canvas.width = 640
-        canvas.height = 480
-        
-        if (!isSimulationMode) {
-          // Try to get camera stream for real MediaPipe mode
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                facingMode: 'user'
-              }
-            })
-            
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream
-              await videoRef.current.play()
-              
-              canvas.width = videoRef.current.videoWidth || 640
-              canvas.height = videoRef.current.videoHeight || 480
+      setCurrentStream(stream)
+      
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          
+          // Set up video event listeners
+          videoRef.current.onloadedmetadata = () => {
+            if (canvasRef.current && videoRef.current) {
+              canvasRef.current.width = videoRef.current.videoWidth
+              canvasRef.current.height = videoRef.current.videoHeight
+              console.log('Canvas dimensions updated on metadata load:', {
+                width: canvasRef.current.width,
+                height: canvasRef.current.height
+              })
             }
-            
-            setCurrentStream(stream)
-          } catch (cameraError) {
-            console.log('Camera not available, continuing in simulation mode')
-            setIsSimulationMode(true)
           }
-        }
-        
-        setIsWorkoutActive(true)
-        setIsDetecting(true)
-        
-        // Reset state
-        setRepCount(0)
-        setPoseHistory([])
-        setLastProcessedRepCount(0)
-        setRepSegments([])
-        setFormScore(0)
-        setFeedback('')
-        
-        onWorkoutStart?.()
-        
-        // Start processing frames
-        setTimeout(() => {
-          processFrame()
-        }, 100)
-      }
+          
+          await videoRef.current.play()
+          setIsCameraActive(true)
+          console.log('Camera started successfully')
+          
+          // Set canvas dimensions to match video
+          if (canvasRef.current && videoRef.current.videoWidth > 0) {
+            canvasRef.current.width = videoRef.current.videoWidth
+            canvasRef.current.height = videoRef.current.videoHeight
+            console.log('Canvas dimensions set:', {
+              width: canvasRef.current.width,
+              height: canvasRef.current.height
+            })
+          }
+          
+          // Start detection automatically if MediaPipe is ready
+          if (poseLandmarker) {
+            console.log('MediaPipe ready, will start detection via useEffect...')
+          } else {
+            console.log('MediaPipe not ready yet, waiting...')
+          }
+        }      return stream
     } catch (error) {
-      console.error('Error starting workout:', error)
-      alert('Failed to start workout. Please try again.')
+      console.error('Failed to start camera:', error)
+      setError('Camera access denied or unavailable')
+      throw error
     }
   }
-  
-  const stopWorkout = () => {
-    setIsDetecting(false)
-    setIsWorkoutActive(false)
-    
-    // Clear simulation timer if it exists
-    if (simulationTimer) {
-      clearTimeout(simulationTimer)
-      setSimulationTimer(null)
-    }
-    
+
+  // Stop camera
+  const stopCamera = () => {
     if (currentStream) {
       currentStream.getTracks().forEach(track => track.stop())
       setCurrentStream(null)
@@ -487,185 +262,485 @@ export function MediaPipeWorkout({
       videoRef.current.srcObject = null
     }
     
-    onWorkoutStop?.()
+    setIsCameraActive(false)
+  }
+
+  // Analyze form and provide real-time feedback
+  const analyzeForm = useCallback((currentPose: Pose) => {
+    if (!exerciseConfig) return
+
+    // Calculate key angles based on exercise type
+    const targetFeedback: string[] = []
     
-    // Complete the workout
-    if (repCount > 0) {
-      const sessionData = JSON.stringify({
-        repSegments: repSegments,
-        exerciseConfig: exerciseConfig,
-        totalPoses: poseHistory.length,
-        timestamp: Date.now(),
-        exerciseType: exerciseType,
-        simulationMode: isSimulationMode
-      })
+    // Example: For push-ups, check elbow and body alignment
+    if (exerciseType === 'pushups' || exerciseType === 'pushup') {
+      // Calculate elbow angle using MediaPipe landmark indices
+      const leftShoulder = currentPose[11]  // LEFT_SHOULDER
+      const leftElbow = currentPose[13]     // LEFT_ELBOW
+      const rightShoulder = currentPose[12] // RIGHT_SHOULDER
+      const rightElbow = currentPose[14]    // RIGHT_ELBOW
       
-      onWorkoutComplete({
-        repCount,
-        formScore,
-        sessionData,
-        repSegments
-      })
+      if (leftShoulder && leftElbow && rightShoulder && rightElbow) {
+        // Simplified form analysis based on elbow position relative to shoulders
+        const avgElbowY = (leftElbow.y + rightElbow.y) / 2
+        const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2
+        
+        if (avgElbowY > avgShoulderY + 0.1) {
+          targetFeedback.push("Keep elbows closer to body")
+        }
+      }
+    }
+
+    // For squats, check knee and hip alignment
+    if (exerciseType === 'squats' || exerciseType === 'squat') {
+      const leftHip = currentPose[23]    // LEFT_HIP
+      const leftKnee = currentPose[25]   // LEFT_KNEE
+      const rightHip = currentPose[24]   // RIGHT_HIP
+      const rightKnee = currentPose[26]  // RIGHT_KNEE
+      
+      if (leftHip && leftKnee && rightHip && rightKnee) {
+        const avgKneeY = (leftKnee.y + rightKnee.y) / 2
+        const avgHipY = (leftHip.y + rightHip.y) / 2
+        
+        // Check squat depth
+        if (avgKneeY < avgHipY - 0.05) {
+          targetFeedback.push("Good squat depth!")
+        } else if (avgKneeY > avgHipY + 0.1) {
+          targetFeedback.push("Squat deeper for better form")
+        }
+      }
+    }
+
+    if (targetFeedback.length > 0) {
+      setFeedback(targetFeedback[0])
+    } else {
+      setFeedback("Good form!")
+    }
+  }, [exerciseConfig, exerciseType])
+
+  // Process pose detection
+  const processPoseDetection = useCallback(() => {
+    if (!poseLandmarker || !videoRef.current || !isDetecting) {
+      return
+    }
+
+    // Frame rate limiting - only detect every 100ms (10 FPS) to prevent performance issues
+    const now = Date.now()
+    if (now - lastDetectionTime < DETECTION_INTERVAL_MS) {
+      return // Skip this frame
+    }
+    setLastDetectionTime(now)
+
+    const video = videoRef.current
+    // Prevent detection if video is not ready or has zero dimensions
+    if (
+      video.readyState < 2 ||
+      video.videoWidth === 0 ||
+      video.videoHeight === 0
+    ) {
+      // Video not ready, skip this frame (but don't spam console)
+      return
+    }
+
+    try {
+      // Use monotonically increasing timestamp for MediaPipe
+      // MediaPipe requires timestamps in microseconds and strictly increasing
+      // Use performance.now() converted to microseconds for unique timestamps
+      const timestamp = Math.floor(performance.now() * 1000) // Convert ms to microseconds
+      
+      // Ensure timestamp is always increasing by using max with previous timestamp
+      const safeTimestamp = Math.max(timestamp, mediapipeTimestampRef.current + 1)
+      mediapipeTimestampRef.current = safeTimestamp
+      
+      const result = poseLandmarker.detectForVideo(video, safeTimestamp)
+      
+      // Only log detection results occasionally to avoid spam
+      if (Math.random() < 0.1) { // Log ~10% of detections
+        console.log('Pose detection result:', {
+          landmarksCount: result.landmarks?.length || 0,
+          hasLandmarks: !!(result.landmarks && result.landmarks.length > 0),
+          fps: '10 FPS (limited)',
+          timestamp: safeTimestamp,
+          rawTimestamp: timestamp
+        })
+      }
+      
+      if (result.landmarks && result.landmarks.length > 0) {
+        const landmarks = result.landmarks[0]
+        
+        // Convert to our Pose format
+        const pose: Pose = landmarks.map((landmark: MediaPipeLandmark, index: number) => ({
+          x: landmark.x,
+          y: landmark.y,
+          z: landmark.z || 0,
+          visibility: landmark.visibility || 1
+        }))
+
+        // Add to pose history
+        setPoseHistory(prev => {
+          const newHistory = [...prev, pose]
+          console.log('Pose history length:', newHistory.length)
+          return newHistory
+        })
+
+        // Draw pose on canvas
+        drawPose(result)
+
+        // Analyze form and provide feedback
+        analyzeForm(pose)
+      } else {
+        console.log('No pose landmarks detected')
+      }
+    } catch (error) {
+      console.error('Pose detection error:', error)
+    }
+  }, [poseLandmarker, isDetecting, analyzeForm])
+
+  // Draw pose on canvas
+  const drawPose = (result: { landmarks: MediaPipeLandmark[][]; worldLandmarks: MediaPipeLandmark[][] }) => {
+    if (!canvasRef.current || !drawingUtilsRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Draw pose landmarks and connections
+    if (result.landmarks && result.landmarks.length > 0) {
+      // Convert MediaPipeLandmark to NormalizedLandmark by ensuring visibility is always a number
+      const normalizedLandmarks = result.landmarks[0].map(landmark => ({
+        ...landmark,
+        visibility: landmark.visibility ?? 1
+      }))
+      
+      drawingUtilsRef.current.drawLandmarks(normalizedLandmarks)
+      drawingUtilsRef.current.drawConnectors(normalizedLandmarks, PoseLandmarker.POSE_CONNECTIONS)
     }
   }
-  
-  if (!isInitialized) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          {initError ? (
-            <>
-              <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Initialization Failed</h3>
-              <p className="text-muted-foreground mb-4">{initError}</p>
-              <Button onClick={() => window.location.reload()}>
-                Retry
-              </Button>
-            </>
-          ) : (
-            <>
-              <Loader2 className="mx-auto h-12 w-12 animate-spin mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Loading AI Pose Detection</h3>
-              <p className="text-muted-foreground">
-                Initializing MediaPipe models...
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    )
+
+  // Process reps from pose history
+  useEffect(() => {
+    if (!exerciseConfig || poseHistory.length < 10) return
+
+    const processReps = async () => {
+      try {
+        const result = await processExerciseReps(
+          poseHistory, 
+          exerciseType, 
+          lastProcessedRepCount,
+          {},
+          exerciseConfig
+        )
+        
+        if (result.repCount > lastProcessedRepCount) {
+          setRepCount(result.repCount)
+          setLastProcessedRepCount(result.repCount)
+          setRepSegments(result.newRepSegments)
+          
+          // Calculate form score
+          if (result.newRepSegments.length > 0) {
+            const avgScore = result.newRepSegments.reduce((sum: number, seg: RepSegment) => sum + seg.formScore, 0) / result.newRepSegments.length
+            setFormScore(Math.round(avgScore))
+          }
+        }
+      } catch (error) {
+        console.error('Error processing reps:', error)
+      }
+    }
+
+    processReps()
+  }, [poseHistory, exerciseConfig, lastProcessedRepCount, exerciseType])
+
+  // Animation loop for pose detection
+  useEffect(() => {
+    let animationId: number
+
+    const animate = () => {
+      processPoseDetection()
+      animationId = requestAnimationFrame(animate)
+    }
+
+    if (isDetecting) {
+      animationId = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId)
+      }
+    }
+  }, [processPoseDetection, isDetecting])
+
+  // Start workout
+  const startWorkout = async () => {
+    try {
+      await startCamera()
+      setIsWorkoutActive(true)
+      setPoseHistory([])
+      setRepCount(0)
+      setLastProcessedRepCount(0)
+      setRepSegments([])
+      setFormScore(0)
+      setFeedback('')
+      
+      // Reset MediaPipe timestamp for clean state
+      mediapipeTimestampRef.current = 0
+      
+      onWorkoutStart?.()
+    } catch (error) {
+      console.error('Failed to start workout:', error)
+      setInitError('Failed to start camera. Please check permissions.')
+    }
   }
-  
+
+  // Synchronize detection start: only enable detection when both camera and poseLandmarker are ready
+  useEffect(() => {
+    console.log('Detection sync check:', {
+      isWorkoutActive,
+      isCameraActive,
+      poseLandmarkerReady: !!poseLandmarker,
+      exerciseConfigReady: !!exerciseConfig
+    })
+    
+    if (isWorkoutActive && isCameraActive && poseLandmarker) {
+      console.log('Starting detection...')
+      setIsDetecting(true)
+    } else {
+      if (isDetecting) {
+        console.log('Stopping detection...')
+      }
+      setIsDetecting(false)
+    }
+  }, [isWorkoutActive, isCameraActive, poseLandmarker, isDetecting])
+
+  // Stop workout
+  const stopWorkout = () => {
+    setIsDetecting(false)
+    setIsWorkoutActive(false)
+    stopCamera()
+    // Reset all workout state for a clean restart
+    setPoseHistory([])
+    setRepCount(0)
+    setLastProcessedRepCount(0)
+    setRepSegments([])
+    setFormScore(0)
+    setFeedback('')
+    
+    // Reset MediaPipe timestamp for next session
+    mediapipeTimestampRef.current = 0
+    // Generate session data
+    const sessionData = JSON.stringify({
+      exerciseType,
+      repCount,
+      formScore,
+      duration: poseHistory.length > 0 ? 
+        (poseHistory.length * 33) / 1000 : 0, // Assuming ~30fps = 33ms per frame
+      poseCount: poseHistory.length,
+      segments: repSegments
+    })
+
+    onWorkoutComplete({
+      repCount,
+      formScore,
+      sessionData,
+      repSegments
+    })
+
+    onWorkoutStop?.()
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Video Feed */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              AI Pose Analysis
-              {isSimulationMode && (
-                <Badge variant="outline" className="ml-2">
-                  Demo Mode
-                </Badge>
-              )}
-            </CardTitle>
-            {isWorkoutActive && (
-              <Badge variant="secondary" className="animate-pulse">
-                <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                {isSimulationMode ? 'Simulating' : 'Recording'}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <video
-              ref={videoRef}
-              className="hidden"
-              playsInline
-              muted
-            />
-            <canvas
-              ref={canvasRef}
-              className="w-full max-w-2xl mx-auto bg-black rounded-lg"
-              width={640}
-              height={480}
-            />
-            
-            {!isWorkoutActive && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                <div className="text-center text-white">
-                  <Target className="mx-auto h-16 w-16 mb-4" />
-                  <p className="text-lg font-semibold mb-2">Ready to Start</p>
-                  <p className="text-sm opacity-75">
-                    {isSimulationMode 
-                      ? 'Demo mode will simulate pose tracking'
-                      : 'Position yourself in front of the camera'
-                    }
+    <div className="space-y-6 w-full max-w-6xl mx-auto">
+      {/* Workout Statistics Cards - Above video when active */}
+      {isWorkoutActive && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Rep Count</h3>
+                  <p className="text-4xl font-bold text-blue-600">{repCount}</p>
+                  <p className="text-sm text-gray-600 mt-1">Completed Reps</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <Target className="h-8 w-8 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Form Score</h3>
+                  <p className="text-4xl font-bold text-green-600">{formScore}%</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {formScore >= 80 ? 'Excellent Form' : formScore >= 60 ? 'Good Form' : 'Needs Improvement'}
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {isSimulationMode && (
-            <Alert className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Demo Mode:</strong> This is a simulation for demonstration purposes. 
-                In production, real MediaPipe pose detection would analyze your actual movements.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Workout Controls & Stats */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Workout Controls</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isWorkoutActive ? (
-              <Button onClick={startWorkout} size="lg" className="w-full">
-                <Camera className="mr-2 h-4 w-4" />
-                Start {exerciseType} {isSimulationMode ? 'Demo' : 'Analysis'}
-              </Button>
-            ) : (
-              <Button 
-                onClick={stopWorkout} 
-                size="lg" 
-                variant="destructive" 
-                className="w-full"
-              >
-                <StopCircle className="mr-2 h-4 w-4" />
-                Complete Workout
-              </Button>
-            )}
-            
-            {isWorkoutActive && (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Perform your {exerciseType} reps in front of the camera
-                </p>
-                <Progress value={Math.min(100, (repCount / 10) * 100)} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Real-time Stats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {repCount}
+                <div className="p-3 bg-green-100 rounded-full">
+                  <Zap className="h-8 w-8 text-green-600" />
                 </div>
-                <div className="text-sm text-muted-foreground">Reps</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {formScore}%
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Video Card */}
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Camera className="h-5 w-5" />
+            <span>Live Workout Session</span>
+            {exerciseConfig && (
+              <Badge variant="outline" className="ml-auto">{exerciseConfig.name}</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-6">
+            {/* Camera Feed and Pose Visualization */}
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <canvas
+                ref={canvasRef}
+                className="absolute top-0 left-0 w-full h-full pointer-events-none"
+              />
+              
+              {!isCameraActive && !isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                  <div className="text-center text-gray-400">
+                    <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Camera not active</p>
+                    <p className="text-sm opacity-75">Start camera to begin workout</p>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">Form Score</div>
+              )}
+
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                  <div className="text-center text-blue-400">
+                    <Loader2 className="h-16 w-16 mx-auto mb-4 animate-spin" />
+                    <p className="text-lg">Initializing MediaPipe...</p>
+                    <p className="text-sm opacity-75">Loading pose detection models</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Status overlay - simplified for cleaner look */}
+              <div className="absolute top-4 left-4">
+                <div className="flex items-center space-x-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
+                  <div className={`w-2 h-2 rounded-full ${isDetecting ? 'bg-green-400' : 'bg-red-400'}`} />
+                  <span className="text-sm font-medium">
+                    {isDetecting ? 'Detecting' : 'Standby'}
+                  </span>
+                </div>
               </div>
+
+              {/* Real-time feedback overlay */}
+              {feedback && isWorkoutActive && (
+                <div className="absolute bottom-4 left-4">
+                  <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
+                    <div className="font-medium">{feedback}</div>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {feedback && isWorkoutActive && (
-              <Alert className="mt-4">
-                <Zap className="h-4 w-4" />
-                <AlertDescription>{feedback}</AlertDescription>
+
+            {/* Exercise Selection */}
+            {!isWorkoutActive && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+                  <div className="font-medium text-lg">Exercise: {exerciseType}</div>
+                  <div className="text-sm mt-1">Get ready to perform {exerciseType}s with proper form</div>
+                </div>
+
+                {!isCameraActive ? (
+                  <Button
+                    onClick={startCamera}
+                    disabled={isLoading}
+                    className="w-full h-12 text-lg"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Loading MediaPipe...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="mr-2 h-5 w-5" />
+                        Start Camera
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={startWorkout}
+                    disabled={!poseLandmarker || !exerciseConfig}
+                    className="w-full h-12 text-lg"
+                    size="lg"
+                  >
+                    {!poseLandmarker ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Loading MediaPipe...
+                      </>
+                    ) : !exerciseConfig ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Loading Exercise Config...
+                      </>
+                    ) : (
+                      <>
+                        <Target className="mr-2 h-5 w-5" />
+                        Start Workout
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Workout Controls */}
+            {isWorkoutActive && (
+              <div className="flex space-x-4">
+                <Button
+                  onClick={stopWorkout}
+                  variant="destructive"
+                  className="flex-1 h-12 text-lg"
+                  size="lg"
+                >
+                  <StopCircle className="mr-2 h-5 w-5" />
+                  Stop Workout
+                </Button>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {(error || initError) && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-base">
+                  {error || initError}
+                </AlertDescription>
               </Alert>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
+export default MediaPipeWorkout

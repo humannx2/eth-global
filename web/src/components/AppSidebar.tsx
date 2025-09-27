@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -30,6 +30,11 @@ interface AppSidebarProps {
 export function AppSidebar({ children }: AppSidebarProps) {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Auto-close sidebar on route changes (mobile only)
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -83,36 +88,35 @@ export function AppSidebar({ children }: AppSidebarProps) {
 
   return (
     <div className="flex h-screen">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Only on lg+ screens */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:border-r lg:bg-background">
         <SidebarContent />
       </div>
 
-      {/* Mobile Menu */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <div className="lg:hidden">
-          {/* Mobile Header */}
-          <div className="flex h-16 items-center justify-between border-b px-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">FitStake</span>
-            </Link>
+      {/* Mobile Header - Only on smaller screens */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
+        <div className="flex h-16 items-center justify-between px-4">
+          {/* Logo and Menu Button Combined */}
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
+              <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">
+                <Trophy className="h-6 w-6 text-primary" />
+                <span className="text-lg font-bold">FitStake</span>
+                <Menu className="h-4 w-4 ml-2" />
               </Button>
             </SheetTrigger>
-          </div>
+            <SheetContent side="left" className="p-0 w-64">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SidebarContent />
+            </SheetContent>
+          </Sheet>
         </div>
-        <SheetContent side="left" className="p-0 w-64">
-          <SidebarContent />
-        </SheetContent>
-      </Sheet>
+      </div>
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col lg:pl-64">
-        <main className="flex-1 overflow-y-auto">
+        {/* Add top padding on mobile to account for fixed header */}
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
           {children}
         </main>
       </div>

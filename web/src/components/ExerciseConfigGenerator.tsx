@@ -21,9 +21,10 @@ import type { ExerciseConfig } from '@/lib/mediapipe-utils'
 
 interface ExerciseConfigGeneratorProps {
   onConfigGenerated?: (config: ExerciseConfig) => void
+  onError?: (error: string) => void
 }
 
-export function ExerciseConfigGenerator({ onConfigGenerated }: ExerciseConfigGeneratorProps) {
+export function ExerciseConfigGenerator({ onConfigGenerated, onError }: ExerciseConfigGeneratorProps) {
   const [exerciseName, setExerciseName] = useState('')
   const [exerciseDescription, setExerciseDescription] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -71,7 +72,9 @@ export function ExerciseConfigGenerator({ onConfigGenerated }: ExerciseConfigGen
 
     } catch (error) {
       console.error('Error generating config:', error)
-      setError(error instanceof Error ? error.message : 'Unknown error occurred')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(errorMessage)
+      onError?.(errorMessage)
     } finally {
       setIsGenerating(false)
     }
@@ -220,10 +223,6 @@ export function ExerciseConfigGenerator({ onConfigGenerated }: ExerciseConfigGen
                   <div>
                     <Label className="text-muted-foreground">Initial Direction</Label>
                     <p className="font-medium">{generatedConfig.initialDirection}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Inverted</Label>
-                    <p className="font-medium">{generatedConfig.inverted ? 'Yes' : 'No'}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Min Peak Distance</Label>
