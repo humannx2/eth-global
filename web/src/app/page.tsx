@@ -67,35 +67,41 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Shield className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <CardTitle className="mb-2">AI Verification</CardTitle>
-                <CardDescription>
-                  MediaPipe pose analysis with LLM refinement ensures authentic workouts
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="feature-card">
+              <Card className="feature-card-content text-center border-0">
+                <CardContent className="pt-6">
+                  <Shield className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <CardTitle className="mb-2">AI Verification</CardTitle>
+                  <CardDescription>
+                    MediaPipe pose analysis with LLM refinement ensures authentic workouts
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Zap className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <CardTitle className="mb-2">Smart Rewards</CardTitle>
-                <CardDescription>
-                  Top 3 finishers share the prize pool: 🥇 50% • 🥈 30% • 🥉 20%
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="feature-card">
+              <Card className="feature-card-content text-center border-0">
+                <CardContent className="pt-6">
+                  <Zap className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <CardTitle className="mb-2">Smart Rewards</CardTitle>
+                  <CardDescription>
+                    Top 3 finishers share the prize pool: 🥇 50% • 🥈 30% • 🥉 20%
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Users className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <CardTitle className="mb-2">Social Fitness</CardTitle>
-                <CardDescription>
-                  Compete with friends in invite-only rooms with custom stakes
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="feature-card">
+              <Card className="feature-card-content text-center border-0">
+                <CardContent className="pt-6">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <CardTitle className="mb-2">Social Fitness</CardTitle>
+                  <CardDescription>
+                    Compete with friends in invite-only rooms with custom stakes
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

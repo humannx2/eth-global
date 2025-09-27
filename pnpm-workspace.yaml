@@ -1,3 +1,12 @@
 packages:
-  - 'blockchain'
-  - 'web'
+  - blockchain
+  - web
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - bufferutil
+  - esbuild
+  - keccak
+  - sharp
+  - unrs-resolver
+  - utf-8-validate
