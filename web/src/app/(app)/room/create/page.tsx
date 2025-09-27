@@ -86,6 +86,7 @@ export default function CreateRoomPage() {
   const [exerciseType, setExerciseType] = useState('')
   const [stakeAmount, setStakeAmount] = useState('')
   const [duration, setDuration] = useState('')
+  const [customEnsName, setCustomEnsName] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
 
@@ -283,6 +284,35 @@ export default function CreateRoomPage() {
                 )}
               </div>
 
+              {/* Custom ENS Name Field */}
+              <div className="space-y-2">
+                <Label htmlFor="custom-ens-name">Custom Room Name (Optional)</Label>
+                <Input
+                  id="custom-ens-name"
+                  type="text"
+                  placeholder="my-epic-fitness-room"
+                  value={customEnsName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEnsName(e.target.value)}
+                  className="font-mono"
+                />
+                {customEnsName && (
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="text-emerald-600 dark:text-emerald-400 font-medium">🎯 Custom ENS Name:</div>
+                      <code className="bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded text-emerald-800 dark:text-emerald-200 font-mono text-xs">
+                        {customEnsName}.fitstake.eth
+                      </code>
+                    </div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      Custom name for easy sharing and branding
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  ENS names make rooms easy to share and join. Leave blank to use auto-generated name.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="stake-amount">Stake Amount (ETH)</Label>
                 <Input
@@ -408,6 +438,14 @@ export default function CreateRoomPage() {
                   <div className="text-sm text-muted-foreground">
                     Stake: {stakeAmount || '0'} ETH per participant
                   </div>
+                  {(customEnsName || proposedEnsName) && (
+                    <div className="text-sm text-muted-foreground">
+                      ENS Name: <code className="bg-muted-foreground/10 px-1 py-0.5 rounded text-xs">
+                        {customEnsName ? `${customEnsName}.fitstake.eth` : proposedEnsName}
+                      </code>
+                      {customEnsName && <span className="text-emerald-600 ml-1">(Custom)</span>}
+                    </div>
+                  )}
                   {generatedConfig ? (
                     <div className="text-sm text-green-600">
                       ✓ Using AI-generated pose configuration
