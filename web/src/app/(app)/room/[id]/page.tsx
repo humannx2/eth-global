@@ -252,7 +252,7 @@ export default function RoomDetailsPage() {
               Unsupported Network
             </CardTitle>
             <CardDescription>
-              FitStake is available on Sepolia and Flow testnets. Please switch networks to view rooms.
+              StakeFit is available on Sepolia and Flow testnets. Please switch networks to view rooms.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

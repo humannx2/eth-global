@@ -46,17 +46,23 @@
 :root {
   --radius: 0.625rem;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #2D2D2D;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: #2D2D2D;
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+  --create-room-btn: #E94C4C;
+  --create-room-btn-hover: #d63c3c;
+  --friendly-accent: #F28C82;
+  --friendly-accent-hover: #ef7a6e;
+  --secondary-accent: #4AA7C0;
+  --secondary-accent-hover: #3a8fa8;
   --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: #2D2D2D;
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: #2D2D2D;
   --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent-foreground: #2D2D2D;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -67,15 +73,15 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-foreground: #2D2D2D;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-accent-foreground: #2D2D2D;
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --sidebar-ring: var(--sidebar-ring);
+  --background: #F4F4F4;
+  --foreground: #2D2D2D;
 }
 
 .dark {
@@ -87,6 +93,12 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+  --create-room-btn: #E94C4C;
+  --create-room-btn-hover: #d63c3c;
+  --friendly-accent: #F28C82;
+  --friendly-accent-hover: #ef7a6e;
+  --secondary-accent: #4AA7C0;
+  --secondary-accent-hover: #3a8fa8;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -118,5 +130,101 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Headers and core text styling */
+  h1, h2, h3, h4, h5, h6 {
+    color: #2D2D2D;
+  }
+  
+  .text-core {
+    color: #2D2D2D !important;
+  }
+}
+
+@layer components {
+  .btn-create-room {
+    background-color: var(--create-room-btn) !important;
+    color: white !important;
+    border: none !important;
+  }
+  
+  .btn-create-room:hover {
+    background-color: var(--create-room-btn-hover) !important;
+  }
+  
+  /* More specific selector for shadcn button component */
+  button.btn-create-room,
+  .btn-create-room > * {
+    background-color: var(--create-room-btn) !important;
+    color: white !important;
+  }
+  
+  button.btn-create-room:hover,
+  .btn-create-room:hover > * {
+    background-color: var(--create-room-btn-hover) !important;
+  }
+  
+  /* Friendly accent colors for hover states and highlights */
+  .friendly-hover:hover {
+    background-color: var(--friendly-accent) !important;
+    color: white !important;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .friendly-accent {
+    color: var(--friendly-accent) !important;
+  }
+  
+  .friendly-bg {
+    background-color: var(--friendly-accent) !important;
+    color: white !important;
+  }
+  
+  .friendly-border {
+    border-color: var(--friendly-accent) !important;
+  }
+  
+  /* Apply friendly hover to buttons and interactive elements */
+  .btn-friendly {
+    background-color: var(--friendly-accent) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn-friendly:hover {
+    background-color: var(--friendly-accent-hover) !important;
+  }
+  
+  /* Secondary accent colors for View Competition buttons */
+  .btn-secondary-accent {
+    background-color: var(--secondary-accent) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn-secondary-accent:hover {
+    background-color: var(--secondary-accent-hover) !important;
+  }
+  
+  .secondary-accent-hover:hover {
+    background-color: var(--secondary-accent) !important;
+    color: white !important;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .secondary-accent {
+    color: var(--secondary-accent) !important;
+  }
+  
+  .secondary-accent-bg {
+    background-color: var(--secondary-accent) !important;
+    color: white !important;
+  }
+  
+  .secondary-accent-border {
+    border-color: var(--secondary-accent) !important;
   }
 }

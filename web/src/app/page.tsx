@@ -3,22 +3,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Shield, Trophy, Target, Users } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center space-x-2">
-            <Trophy className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">FitStake</span>
+            <Image 
+              src="/panda-logo.png" 
+              alt="StakeFit Logo" 
+              width={32} 
+              height={32} 
+              className="h-8 w-8 rounded-full"
+            />
+            <span className="text-xl font-bold">StakeFit</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Button asChild variant="ghost">
+            <Button asChild variant="ghost" className="secondary-accent-hover">
               <Link href="/room">View Competitions</Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none">
               <Link href="/room/create">Create Room</Link>
             </Button>
           </div>
@@ -30,26 +37,28 @@ export default function HomePage() {
         <div className="text-center max-w-4xl mx-auto">
           <div className="mb-6">
             <Badge variant="outline" className="mb-4">
-              🏋️‍♂️ Fitness × Web3 × AI Verification
+              🏋️‍♂️ Fitness × Web3 × AI
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-              FitStake
-              <span className="text-primary"> Competitions</span>
+              StakeFit
+              {/* <span className="text-primary"> Competitions</span> */}
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Verifiable on-chain fitness competitions. AI agents verify real-world workouts 
-              and distribute rewards automatically. Stake. Move. Win.
+            Transparent, Trustless Fitness competitions with real crypto rewards. 
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Stake. Move. Win.
+              </p>
             </p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button asChild size="lg" className="text-lg">
+            <Button asChild size="lg" className="text-lg btn-secondary-accent">
               <Link href="/room">
                 <Trophy className="mr-2 h-5 w-5" />
                 View Competitions
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg">
+            <Button asChild size="lg" className="text-lg bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none">
               <Link href="/room/create">
                 <Target className="mr-2 h-5 w-5" />
                 Create Room

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
@@ -42,8 +43,14 @@ export function AppSidebar({ children }: AppSidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/" className="flex items-center space-x-2">
-          <Trophy className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">FitStake</span>
+          <Image 
+            src="/panda-logo.png" 
+            alt="StakeFit Logo" 
+            width={32} 
+            height={32} 
+            className="h-8 w-8 rounded-full"
+          />
+          <span className="text-xl font-bold">StakeFit</span>
         </Link>
       </div>
 
@@ -102,8 +109,14 @@ export function AppSidebar({ children }: AppSidebarProps) {
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="flex items-center space-x-2 p-2">
-                <Trophy className="h-6 w-6 text-primary" />
-                <span className="text-lg font-bold">FitStake</span>
+                <Image 
+                  src="/panda-logo.png" 
+                  alt="StakeFit Logo" 
+                  width={24} 
+                  height={24} 
+                  className="h-6 w-6 rounded-full"
+                />
+                <span className="text-lg font-bold">StakeFit</span>
                 <Menu className="h-4 w-4 ml-2" />
               </Button>
             </SheetTrigger>

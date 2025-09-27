@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitStake - Verifiable Fitness Competitions",
+  title: "StakeFit - Verifiable Fitness Competitions",
   description: "Stake crypto on your workouts and compete with friends using AI-verified fitness challenges",
 };
 

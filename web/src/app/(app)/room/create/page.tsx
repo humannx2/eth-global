@@ -193,7 +193,7 @@ export default function CreateRoomPage() {
               Unsupported Network
             </CardTitle>
             <CardDescription>
-              FitStake is deployed on Sepolia and Flow testnets. Please switch networks to create a room.
+              StakeFit is deployed on Sepolia and Flow testnets. Please switch networks to create a room.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
