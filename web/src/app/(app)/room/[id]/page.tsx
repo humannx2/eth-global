@@ -176,6 +176,30 @@ export default function RoomDetailsPage() {
     }
   }
 
+  const handleFinalizeRoom = async () => {
+    if (!roomInfo || !address || !isCreator) {
+      alert('Only the room creator can finalize the competition')
+      return
+    }
+
+    if (!isExpired) {
+      alert('Competition is still active. Wait for it to expire before finalizing.')
+      return
+    }
+
+    try {
+      writeContract({
+        address: roomInfo.roomAddress as `0x${string}`,
+        abi: roomAbi,
+        functionName: 'finalizeRoom',
+      })
+      
+    } catch (error) {
+      console.error('Error finalizing room:', error)
+      alert('Error finalizing room. Please try again.')
+    }
+  }
+
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -501,13 +525,39 @@ export default function RoomDetailsPage() {
                 <CardHeader>
                   <CardTitle>Finalize Competition</CardTitle>
                   <CardDescription>
-                    End the competition and distribute rewards
+                    End the competition and distribute rewards to winners
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full">
-                    Finalize & Distribute Rewards
-                  </Button>
+                  {isSuccess && hash ? (
+                    <div className="text-center py-4">
+                      <CheckCircle className="mx-auto h-8 w-8 text-green-500 mb-2" />
+                      <p className="text-sm text-green-600 font-medium">
+                        Competition finalized! Rewards distributed.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Transaction: {hash.slice(0, 10)}...
+                      </p>
+                    </div>
+                  ) : (
+                    <Button 
+                      className="w-full" 
+                      onClick={handleFinalizeRoom}
+                      disabled={isPending || isConfirming}
+                    >
+                      {isPending || isConfirming ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {isPending ? 'Finalizing...' : 'Confirming...'}
+                        </>
+                      ) : (
+                        <>
+                          <Trophy className="mr-2 h-4 w-4" />
+                          Finalize & Distribute Rewards
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
