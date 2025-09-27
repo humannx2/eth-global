@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web3 Counter DApp",
-  description: "A decentralized counter application using Wagmi and generated types",
+  title: "FitStake - Verifiable Fitness Competitions",
+  description: "Stake crypto on your workouts and compete with friends using AI-verified fitness challenges",
 };
 
 export default function RootLayout({
