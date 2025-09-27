@@ -7,12 +7,20 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { 
   Camera, 
   StopCircle, 
   Target, 
   Zap, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Video
 } from 'lucide-react'
 import { 
   processExerciseReps, 
@@ -83,6 +91,11 @@ export function MediaPipeWorkout({
   const [lastDetectionTime, setLastDetectionTime] = useState<number>(0)
   const mediapipeTimestampRef = useRef<number>(0)
   const DETECTION_INTERVAL_MS = 100 // 10 FPS (1000ms / 10 = 100ms)
+
+  // Camera selection state
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([])
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('')
+  const [isCameraListLoading, setIsCameraListLoading] = useState(false)
 
   // Initialize MediaPipe
   useEffect(() => {
@@ -193,17 +206,60 @@ export function MediaPipeWorkout({
     setExerciseConfig(config)
   }, [providedConfig, exerciseType])
 
+  // Enumerate available cameras
+  const enumerateCameras = async () => {
+    try {
+      setIsCameraListLoading(true)
+      
+      // Request permission first to get device labels
+      const tempStream = await navigator.mediaDevices.getUserMedia({ video: true })
+      tempStream.getTracks().forEach(track => track.stop())
+      
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const videoDevices = devices.filter(device => device.kind === 'videoinput')
+      
+      console.log('Available cameras:', videoDevices)
+      setAvailableCameras(videoDevices)
+      
+      // Set default to first available camera if none selected
+      if (!selectedCameraId && videoDevices.length > 0) {
+        setSelectedCameraId(videoDevices[0].deviceId)
+      }
+      
+    } catch (error) {
+      console.error('Failed to enumerate cameras:', error)
+      setError('Failed to access camera devices')
+    } finally {
+      setIsCameraListLoading(false)
+    }
+  }
+
+  // Load available cameras on component mount
+  useEffect(() => {
+    enumerateCameras()
+  }, [])
+
   // Start camera
   const startCamera = async () => {
     try {
       setError('')
-      console.log('Starting camera...')
+      console.log('Starting camera...', { selectedCameraId })
+      
+      // Build video constraints
+      const videoConstraints: MediaTrackConstraints = {
+        width: 640, 
+        height: 480,
+      }
+      
+      // Use specific camera if selected, otherwise default to user-facing
+      if (selectedCameraId) {
+        videoConstraints.deviceId = { exact: selectedCameraId }
+      } else {
+        videoConstraints.facingMode = 'user'
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: 640, 
-          height: 480,
-          facingMode: 'user'
-        } 
+        video: videoConstraints
       })
       
       setCurrentStream(stream)
@@ -248,6 +304,26 @@ export function MediaPipeWorkout({
       console.error('Failed to start camera:', error)
       setError('Camera access denied or unavailable')
       throw error
+    }
+  }
+
+  // Switch camera while active
+  const switchCamera = async (cameraId: string) => {
+    if (!isCameraActive) return
+    
+    try {
+      // Stop current camera
+      await stopCamera()
+      
+      // Update selected camera
+      setSelectedCameraId(cameraId)
+      
+      // Start with new camera
+      await startCamera()
+      
+    } catch (error) {
+      console.error('Failed to switch camera:', error)
+      setError('Failed to switch camera')
     }
   }
 
@@ -637,14 +713,40 @@ export function MediaPipeWorkout({
                 </div>
               )}
               
-              {/* Status overlay - simplified for cleaner look */}
-              <div className="absolute top-4 left-4">
+              {/* Status and Camera Switch overlay */}
+              <div className="absolute top-4 left-4 flex items-center gap-2">
                 <div className="flex items-center space-x-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
                   <div className={`w-2 h-2 rounded-full ${isDetecting ? 'bg-green-400' : 'bg-red-400'}`} />
                   <span className="text-sm font-medium">
                     {isDetecting ? 'Detecting' : 'Standby'}
                   </span>
                 </div>
+                
+                {/* Camera Switch Button - only show when camera is active and multiple cameras available */}
+                {isCameraActive && availableCameras.length > 1 && (
+                  <Select
+                    value={selectedCameraId}
+                    onValueChange={switchCamera}
+                  >
+                    <SelectTrigger className="w-auto bg-black/70 backdrop-blur-sm border-gray-600 text-white">
+                      <Video className="h-4 w-4" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCameras.map((camera, index) => (
+                        <SelectItem key={camera.deviceId} value={camera.deviceId}>
+                          <div className="flex items-center gap-2">
+                            <Video className="h-4 w-4" />
+                            <span>
+                              {camera.label || `Camera ${index + 1}`}
+                              {camera.label?.toLowerCase().includes('front') && ' 📱'}
+                              {camera.label?.toLowerCase().includes('back') && ' 📷'}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               {/* Real-time feedback overlay */}
@@ -664,6 +766,53 @@ export function MediaPipeWorkout({
                   <div className="font-medium text-lg">Exercise: {exerciseType}</div>
                   <div className="text-sm mt-1">Get ready to perform {exerciseType}s with proper form</div>
                 </div>
+
+                {/* Camera Selection */}
+                {!isCameraActive && availableCameras.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">
+                        Select Camera
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={enumerateCameras}
+                        disabled={isCameraListLoading}
+                      >
+                        {isCameraListLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Video className="h-4 w-4" />
+                        )}
+                        <span className="ml-1">Refresh</span>
+                      </Button>
+                    </div>
+                    <Select
+                      value={selectedCameraId}
+                      onValueChange={setSelectedCameraId}
+                      disabled={isCameraListLoading}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose camera..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCameras.map((camera, index) => (
+                          <SelectItem key={camera.deviceId} value={camera.deviceId}>
+                            <div className="flex items-center gap-2">
+                              <Video className="h-4 w-4" />
+                              <span>
+                                {camera.label || `Camera ${index + 1}`}
+                                {camera.label?.toLowerCase().includes('front') && ' 📱'}
+                                {camera.label?.toLowerCase().includes('back') && ' 📷'}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {!isCameraActive ? (
                   <Button
