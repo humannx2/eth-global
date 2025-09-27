@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Plus, Timer, Users } from 'lucide-react'
 import { roomFactoryAbi } from '@/lib/wagmi-generated'
+import { ExerciseConfigGenerator } from '@/components/ExerciseConfigGenerator'
+import type { ExerciseConfig } from '@/lib/mediapipe-utils'
 
 // TODO: Get this from deployed contract address
 const ROOM_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
@@ -23,12 +25,20 @@ export default function CreateRoomPage() {
   const [exerciseType, setExerciseType] = useState('')
   const [stakeAmount, setStakeAmount] = useState('')
   const [duration, setDuration] = useState('')
-  const [exerciseConfig, setExerciseConfig] = useState('')
+  const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
 
   const { writeContract, data: hash, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   })
+
+  const handleConfigGenerated = (config: ExerciseConfig) => {
+    setGeneratedConfig(config)
+    // Auto-fill exercise type if it matches the config name
+    if (config.name && !exerciseType) {
+      setExerciseType(config.name.replace(/_/g, ' '))
+    }
+  }
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,19 +56,27 @@ export default function CreateRoomPage() {
     const durationInSeconds = parseInt(duration) * 60 // Convert minutes to seconds
     const stakeAmountWei = parseEther(stakeAmount)
 
-    // Default exercise config for pushups if not provided
-    const defaultConfig = JSON.stringify({
-      exerciseType: 'pushups',
-      minElbowAngle: 30,
-      maxElbowAngle: 170,
-      minHipAngle: 160,
-      minRepSpeed: 0.5, // seconds per rep minimum
-      maxRepSpeed: 3.0, // seconds per rep maximum
-      landmarks: [
-        'left_shoulder', 'right_shoulder',
-        'left_elbow', 'right_elbow', 
-        'left_wrist', 'right_wrist',
-        'left_hip', 'right_hip'
+    // Use generated config or default config for pushups if not provided
+    const configToUse = generatedConfig ? JSON.stringify(generatedConfig) : JSON.stringify({
+      name: 'pushup',
+      initialDirection: 'up',
+      inverted: true,
+      minPeakDistance: 10,
+      anglePoints: [
+        {
+          name: 'left_elbow',
+          points: [11, 13, 15],
+          weight: 1.0,
+          targetLowAngle: 60,
+          targetHighAngle: 160
+        },
+        {
+          name: 'right_elbow',
+          points: [12, 14, 16],
+          weight: 1.0,
+          targetLowAngle: 60,
+          targetHighAngle: 160
+        }
       ]
     })
 
@@ -71,7 +89,7 @@ export default function CreateRoomPage() {
           exerciseType,
           stakeAmountWei,
           BigInt(durationInSeconds),
-          exerciseConfig || defaultConfig
+          configToUse
         ],
         value: stakeAmountWei,
       })
@@ -174,18 +192,21 @@ export default function CreateRoomPage() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="exercise-config">Exercise Configuration (Optional)</Label>
-                <Textarea
-                  id="exercise-config"
-                  placeholder='{"minElbowAngle": 30, "maxElbowAngle": 170, ...}'
-                  value={exerciseConfig}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setExerciseConfig(e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Custom JSON configuration for pose detection parameters
-                </p>
+              {/* AI Exercise Configuration Generator */}
+              <div className="space-y-4">
+                <ExerciseConfigGenerator onConfigGenerated={handleConfigGenerated} />
+                
+                {generatedConfig && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
+                      <Plus className="h-4 w-4" />
+                      AI Configuration Generated
+                    </div>
+                    <p className="text-sm text-green-700">
+                      Generated MediaPipe configuration for "{generatedConfig.name}" will be used for pose tracking.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-muted p-4 rounded-lg">
@@ -206,6 +227,11 @@ export default function CreateRoomPage() {
                   <div className="text-sm text-muted-foreground">
                     Stake: {stakeAmount || '0'} ETH per participant
                   </div>
+                  {generatedConfig && (
+                    <div className="text-sm text-green-600">
+                      ✓ AI-generated pose configuration ready
+                    </div>
+                  )}
                 </div>
               </div>
 
