@@ -23,12 +23,25 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-              <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-                <Home className="h-4 w-4 text-primary-foreground" />
-              </div>
-              Web3 DApp
-            </Link>
+                    <Link href="/" className="flex items-center space-x-2">
+          <span className="font-bold text-xl">FitStake</span>
+        </Link>
+
+        {/* Navigation Links */}
+        <div className="hidden md:flex items-center space-x-4">
+          <Link 
+            href="/room" 
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Competitions
+          </Link>
+          <Link 
+            href="/room/create" 
+            className="text-sm font-medium hover:text-primary transition-colors"
+          >
+            Create Room
+          </Link>
+        </div>
             
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-4">

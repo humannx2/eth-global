@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Users, 
@@ -22,6 +21,8 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { roomFactoryAbi, roomAbi } from '@/lib/wagmi-generated'
+import { MediaPipeWorkout } from '@/components/MediaPipeWorkout'
+import type { RepSegment } from '@/lib/mediapipe-utils'
 
 // TODO: Get this from deployed contract address
 const ROOM_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
@@ -44,7 +45,8 @@ export default function RoomDetailsPage() {
   const [workoutData, setWorkoutData] = useState({
     repCount: 0,
     formScore: 0,
-    sessionData: '{}'
+    sessionData: '{}',
+    repSegments: [] as RepSegment[]
   })
 
   const roomId = params.id as string
@@ -107,21 +109,13 @@ export default function RoomDetailsPage() {
     return `${minutes}m`
   }
 
-  const handleStartWorkout = () => {
-    setShowWorkoutInterface(true)
-    // TODO: Initialize MediaPipe pose detection here
-    // For now, simulate workout data
-    setTimeout(() => {
-      setWorkoutData({
-        repCount: Math.floor(Math.random() * 20) + 10, // Random 10-30 reps
-        formScore: Math.floor(Math.random() * 30) + 70, // Random 70-100 score
-        sessionData: JSON.stringify({
-          poses: [],
-          timestamp: Date.now(),
-          exerciseType: roomInfo?.exerciseType
-        })
-      })
-    }, 3000) // Simulate 3 second workout
+  const handleWorkoutComplete = (data: {
+    repCount: number
+    formScore: number
+    sessionData: string
+    repSegments: RepSegment[]
+  }) => {
+    setWorkoutData(data)
   }
 
   const handleSubmitWorkout = async () => {
@@ -272,24 +266,20 @@ export default function RoomDetailsPage() {
                       <Zap className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold mb-2">Ready to Compete?</h3>
                       <p className="text-muted-foreground mb-6">
-                        Click start to begin your workout. Your camera will analyze your form and count reps.
+                        Click start to begin your workout. AI will analyze your form and count reps.
                       </p>
-                      <Button onClick={handleStartWorkout} size="lg">
+                      <Button onClick={() => setShowWorkoutInterface(true)} size="lg">
                         <Camera className="mr-2 h-4 w-4" />
                         Start Workout
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <>
                       {workoutData.repCount === 0 ? (
-                        <div className="text-center py-8">
-                          <Loader2 className="mx-auto h-8 w-8 animate-spin mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">Workout in Progress...</h3>
-                          <p className="text-muted-foreground">
-                            Perform your {roomInfo.exerciseType} while the AI analyzes your form
-                          </p>
-                          <Progress value={33} className="mt-4" />
-                        </div>
+                        <MediaPipeWorkout
+                          exerciseType={roomInfo.exerciseType}
+                          onWorkoutComplete={handleWorkoutComplete}
+                        />
                       ) : (
                         <div className="space-y-4">
                           <Alert>
@@ -327,7 +317,7 @@ export default function RoomDetailsPage() {
                           </Button>
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
