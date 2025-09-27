@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
 import { parseEther } from 'viem'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,21 +11,27 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, Timer, Users } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Plus, Timer, Users, AlertTriangle } from 'lucide-react'
 import { roomFactoryAbi } from '@/lib/wagmi-generated'
 import { ExerciseConfigGenerator } from '@/components/ExerciseConfigGenerator'
+import { getContractAddress, isContractDeployed } from '@/lib/contracts'
+import { useChainId } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
 import type { ExerciseConfig } from '@/lib/mediapipe-utils'
-
-// TODO: Get this from deployed contract address
-const ROOM_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
 export default function CreateRoomPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { switchChain } = useSwitchChain()
   const [exerciseType, setExerciseType] = useState('')
   const [stakeAmount, setStakeAmount] = useState('')
   const [duration, setDuration] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
+
+  // Check if contracts are deployed on current chain
+  const isSupported = isContractDeployed(chainId, 'RoomFactory')
 
   const { writeContract, data: hash, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -82,7 +88,7 @@ export default function CreateRoomPage() {
 
     try {
       writeContract({
-        address: ROOM_FACTORY_ADDRESS,
+        address: getContractAddress(chainId, 'RoomFactory'),
         abi: roomFactoryAbi,
         functionName: 'createRoom',
         args: [
@@ -116,6 +122,44 @@ export default function CreateRoomPage() {
               Please connect your wallet to create a fitness competition room.
             </CardDescription>
           </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!isSupported) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Unsupported Network
+            </CardTitle>
+            <CardDescription>
+              FitStake is currently only deployed on Sepolia testnet. Please switch networks to create a room.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Current network: {chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`}
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => switchChain({ chainId: sepolia.id })}
+              className="w-full"
+            >
+              Switch to Sepolia Testnet
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              You can get Sepolia ETH from faucets like{' '}
+              <a href="https://sepoliafaucet.com/" target="_blank" rel="noopener noreferrer" className="underline">
+                sepoliafaucet.com
+              </a>
+            </p>
+          </CardContent>
         </Card>
       </div>
     )
@@ -170,9 +214,30 @@ export default function CreateRoomPage() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStakeAmount(e.target.value)}
                   required
                 />
-                <p className="text-sm text-muted-foreground">
-                  Amount each participant must stake to join the competition
-                </p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Amount each participant must stake to join the competition
+                  </p>
+                  {stakeAmount && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+                      <div className="text-sm font-medium text-green-800 mb-2">💰 Prize Distribution (per participant):</div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="text-center">
+                          <div className="font-semibold text-yellow-600">🥇 1st</div>
+                          <div>{(parseFloat(stakeAmount || '0') * 0.5).toFixed(3)} ETH</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-gray-600">🥈 2nd</div>
+                          <div>{(parseFloat(stakeAmount || '0') * 0.3).toFixed(3)} ETH</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-amber-600">🥉 3rd</div>
+                          <div>{(parseFloat(stakeAmount || '0') * 0.2).toFixed(3)} ETH</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -203,7 +268,7 @@ export default function CreateRoomPage() {
                       AI Configuration Generated
                     </div>
                     <p className="text-sm text-green-700">
-                      Generated MediaPipe configuration for "{generatedConfig.name}" will be used for pose tracking.
+                      Generated MediaPipe configuration for &quot;{generatedConfig.name}&quot; will be used for pose tracking.
                     </p>
                   </div>
                 )}

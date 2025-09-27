@@ -203,7 +203,7 @@ export function ExerciseConfigGenerator({ onConfigGenerated }: ExerciseConfigGen
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Fallback Configuration:</strong> AI generation failed or isn't configured. 
+                  <strong>Fallback Configuration:</strong> AI generation failed or isn&apos;t configured. 
                   This is a generic push-up configuration. Set CLOUDFLARE_API_TOKEN and 
                   CLOUDFLARE_ACCOUNT_ID environment variables to enable AI generation.
                 </AlertDescription>

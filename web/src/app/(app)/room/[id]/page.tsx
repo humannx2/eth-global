@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,14 +18,15 @@ import {
   Target,
   ArrowLeft,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react'
 import { roomFactoryAbi, roomAbi } from '@/lib/wagmi-generated'
 import { MediaPipeWorkout } from '@/components/MediaPipeWorkout'
+import { getContractAddress, isContractDeployed } from '@/lib/contracts'
+import { useChainId } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
 import type { RepSegment } from '@/lib/mediapipe-utils'
-
-// TODO: Get this from deployed contract address
-const ROOM_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
 interface RoomInfo {
   roomAddress: string
@@ -41,6 +42,8 @@ export default function RoomDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { switchChain } = useSwitchChain()
   const [showWorkoutInterface, setShowWorkoutInterface] = useState(false)
   const [workoutData, setWorkoutData] = useState({
     repCount: 0,
@@ -50,13 +53,19 @@ export default function RoomDetailsPage() {
   })
 
   const roomId = params.id as string
+  
+  // Check if contracts are deployed on current chain
+  const isSupported = isContractDeployed(chainId, 'RoomFactory')
 
   // Get room info from factory
   const { data: roomInfo } = useReadContract({
-    address: ROOM_FACTORY_ADDRESS,
+    address: isSupported ? getContractAddress(chainId, 'RoomFactory') : undefined,
     abi: roomFactoryAbi,
     functionName: 'getRoomInfo',
     args: [BigInt(roomId)],
+    query: {
+      enabled: isSupported && isConnected,
+    }
   }) as { data: RoomInfo | undefined }
 
   // Get room status from the room contract
@@ -158,6 +167,53 @@ export default function RoomDetailsPage() {
     )
   }
 
+  if (!isConnected) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Connect Wallet</CardTitle>
+            <CardDescription>
+              Please connect your wallet to view this fitness competition room.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!isSupported) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Unsupported Network
+            </CardTitle>
+            <CardDescription>
+              This room is on Sepolia testnet. Please switch networks to view details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Current network: {chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`}
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => switchChain({ chainId: sepolia.id })}
+              className="w-full"
+            >
+              Switch to Sepolia Testnet
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (!roomInfo) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -240,10 +296,32 @@ export default function RoomDetailsPage() {
                 
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Total Prize Pool</p>
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold mb-2">
                     {formatEther(roomStatus?.[2] || BigInt(0))} ETH
                   </div>
-                  <p className="text-sm text-muted-foreground">Winner takes all</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">🥇 1st Place:</span>
+                      <span className="font-semibold text-yellow-600">
+                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(50) / BigInt(100))} ETH (50%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">🥈 2nd Place:</span>
+                      <span className="font-semibold text-gray-600">
+                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(30) / BigInt(100))} ETH (30%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">🥉 3rd Place:</span>
+                      <span className="font-semibold text-amber-600">
+                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(20) / BigInt(100))} ETH (20%)
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💪 Performance = Reps × Form Score
+                  </p>
                 </div>
               </CardContent>
             </Card>
