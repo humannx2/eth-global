@@ -16,6 +16,7 @@ import {
   Plus
 } from 'lucide-react'
 import { WalletWidget } from './WalletWidget'
+import { NetworkSwitcher } from './NetworkSwitcher'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -79,8 +80,9 @@ export function AppSidebar({ children }: AppSidebarProps) {
 
       <Separator />
 
-      {/* Wallet Section */}
-      <div className="p-4">
+      {/* Network & Wallet Section */}
+      <div className="p-4 space-y-4">
+        <NetworkSwitcher />
         <WalletWidget />
       </div>
     </div>
