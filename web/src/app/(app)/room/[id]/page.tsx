@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useWalletClient, useChainId } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,6 @@ import {
 import { roomFactoryAbi, roomAbi } from '@/lib/wagmi-generated'
 import { MediaPipeWorkout } from '@/components/MediaPipeWorkout'
 import { getContractAddress, isContractDeployed } from '@/lib/contracts'
-import { useChainId } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 import type { RepSegment } from '@/lib/mediapipe-utils'
 
@@ -41,9 +40,11 @@ interface RoomInfo {
 export default function RoomDetailsPage() {
   const params = useParams()
   const router = useRouter()
+  const id = params.id as string
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { switchChain } = useSwitchChain()
+  const { data: walletClient } = useWalletClient()
   const [showWorkoutInterface, setShowWorkoutInterface] = useState(false)
   const [workoutData, setWorkoutData] = useState({
     repCount: 0,
@@ -67,6 +68,16 @@ export default function RoomDetailsPage() {
       enabled: isSupported && isConnected,
     }
   }) as { data: RoomInfo | undefined }
+
+  // Get exercise config from the room contract
+  const { data: contractExerciseConfig } = useReadContract({
+    address: roomInfo?.roomAddress as `0x${string}`,
+    abi: roomAbi,
+    functionName: 'exerciseConfig',
+    query: {
+      enabled: !!roomInfo?.roomAddress,
+    },
+  }) as { data: string | undefined }
 
   // Get room status from the room contract
   const { data: roomStatus } = useReadContract({
@@ -131,8 +142,21 @@ export default function RoomDetailsPage() {
     if (!roomInfo || !address) return
 
     try {
-      // TODO: Generate proper signature from session data
-      const mockSignature = '0x1234'
+      // Generate signature from workout session data
+      const message = JSON.stringify({
+        roomId: id,
+        address,
+        repCount: workoutData.repCount,
+        formScore: workoutData.formScore,
+        timestamp: Date.now()
+      })
+      
+      // Sign the message using the connected wallet
+      const signature = await walletClient?.signMessage({ message })
+      
+      if (!signature) {
+        throw new Error('Failed to sign workout data')
+      }
       
       writeContract({
         address: roomInfo.roomAddress as `0x${string}`,
@@ -141,7 +165,7 @@ export default function RoomDetailsPage() {
         args: [
           BigInt(workoutData.repCount),
           BigInt(workoutData.formScore),
-          mockSignature,
+          signature,
           workoutData.sessionData
         ],
         value: roomInfo.stakeAmount,
@@ -356,7 +380,10 @@ export default function RoomDetailsPage() {
                       {workoutData.repCount === 0 ? (
                         <MediaPipeWorkout
                           exerciseType={roomInfo.exerciseType}
+                          exerciseConfig={contractExerciseConfig}
                           onWorkoutComplete={handleWorkoutComplete}
+                          onWorkoutStart={() => console.log('Workout started')}
+                          onWorkoutStop={() => console.log('Workout stopped')}
                         />
                       ) : (
                         <div className="space-y-4">

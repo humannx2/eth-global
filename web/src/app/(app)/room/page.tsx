@@ -172,13 +172,16 @@ export default function RoomsPage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Fitness Competitions</h1>
             <p className="text-muted-foreground">
-              Join active competitions or create your own fitness challenge.
+              💪 Compete, perform, earn! Win up to 50% of the prize pool for 1st place.
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              🏆 Top 3 winners share rewards: 50% • 30% • 20%
             </p>
           </div>
           <Link href="/room/create">
-            <Button>
+            <Button size="lg" className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
               <Plus className="mr-2 h-4 w-4" />
-              Create Room
+              Create Competition
             </Button>
           </Link>
         </div>
@@ -301,7 +304,7 @@ export default function RoomsPage() {
                     
                     <Separator />
                     
-                    <Link href={`/room/${(room as any).roomId || index}`}>
+                    <Link href={`/room/${(room as { roomId?: number | string }).roomId || index}`}>
                       <Button className="w-full">
                         🏆 Join Competition
                       </Button>

@@ -71,9 +71,9 @@ export default function HomePage() {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <Zap className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <CardTitle className="mb-2">On-Chain Stakes</CardTitle>
+                <CardTitle className="mb-2">Smart Rewards</CardTitle>
                 <CardDescription>
-                  Transparent competition with automatic reward distribution to winners
+                  Top 3 finishers share the prize pool: 🥇 50% • 🥈 30% • 🥉 20%
                 </CardDescription>
               </CardContent>
             </Card>
