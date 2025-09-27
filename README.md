@@ -1,123 +1,221 @@
-# 🏋️‍♂️ FitStake – Verifiable On-Chain Fitness Competitions
+# 🏋️‍♂️ FitStake – AI-Verified Fitness Competitions on Web3
 
-> **Stake. Move. Win.**
-> The first hackathon-ready protocol where AI agents verify real-world workouts and distribute on-chain rewards automatically.
-
----
-
-## 🚩 Problem
-
-Fitness “move-to-earn” and “stake-to-compete” apps are easily gamed. Users can cheat with pre-recorded videos, bots or other people performing the exercise.
-This breaks trust and makes staking impossible.
+> **Stake. Move. Win.**  
+> Real-time pose detection meets blockchain staking for verifiable fitness competitions.
 
 ---
 
-## 💡 Our Solution
+## � What We Built
 
-FitStake combines:
+FitStake is a **Web3 fitness competition platform** that combines AI-powered pose verification with on-chain staking. Users can create fitness rooms, stake crypto, and compete in real-time workouts verified by MediaPipe pose detection and dynamic scoring algorithms.
 
-* **Mediapipe Pose Analysis** – counts reps & scores form locally on the device.
-* **Identity Binding** – quick selfie liveness check, signed with an ephemeral device key.
-* **AI Agent Verification** – off-chain agent reviews session JSON, flags anomalies, stores a trace on IPFS.
-* **On-Chain Contest Contract** – holds stakes/bounties, verifies signatures, and distributes rewards automatically.
+### ✨ **Live Features**
 
-**Result:** verifiable, privacy-preserving, cheat-resistant fitness competitions.
-
----
-
-## 🔑 Key Features
-
-* **Invite-Only Rooms:** room creator funds a bounty or sets a stake; share invite link with participants.
-* **Stake-to-Compete:** each participant deposits a fixed amount; winners share the pool.
-* **Top-3 Weighted Rewards:** default 50 % / 30 % / 20 % split; ties auto-handled.
-* **Transparent Traces:** every session has an IPFS CID with the agent’s decision log.
-* **Composable:** other dApps can read the on-chain SBT/session record.
+- **📷 Real-time Pose Detection:** MediaPipe runs in-browser for instant rep counting
+- **🎯 Dynamic Form Scoring:** Advanced algorithm analyzing Range of Motion, Tempo, and Consistency  
+- **💰 Stake-to-Compete:** Create or join rooms with crypto stakes
+- **📱 Mobile-First UI:** Responsive design with auto-closing sidebar
+- **⚡ Performance Optimized:** 10 FPS detection with frame limiting
+- **🔒 On-Chain Verification:** Smart contracts handle stakes and payouts
 
 ---
 
-## 🏗 Architecture
+## 🏗️ Architecture
 
 ```
-[Camera + Mediapipe] 
-       ↓ (session JSON + selfieHash signed with device key)
-[Frontend dApp] —(tx)→ [Contest Smart Contract] 
-       ↑                           ↓ (CID)
- [Agent Server verifies & pushes trace to IPFS]
+[📱 Browser Camera] → [🤖 MediaPipe Pose Detection] → [📊 Dynamic Scoring]
+                                    ↓
+[💻 Next.js Frontend] ← [⛓️ Smart Contracts] → [💰 Reward Distribution]
 ```
 
-* **Frontend:** Next.js + shadcn UI.
-* **Pose & Form Scoring:** Mediapipe running in browser.
-* **Smart Contracts:** Solidity on Polygon Mumbai L2.
-* **Agent Server:** Node.js, runs heuristics, publishes CID to IPFS (nft.storage).
+### **Tech Stack**
+
+- **Frontend:** Next.js 15, TypeScript, shadcn/ui, Tailwind CSS
+- **Pose Detection:** MediaPipe Tasks Vision v0.10.3
+- **Blockchain:** Hardhat 3, Solidity, viem, wagmi v2
+- **Networks:** Sepolia Testnet, Polygon (planned)
+- **Package Management:** PNPM workspaces
 
 ---
 
-## ⚙️ How It Works
+## 🎮 How It Works
 
-1. **Create Room:** Creator chooses exercise + sets bounty or stake.
-2. **Join & Verify:** Participants connect wallet, run selfie liveness, do reps.
-3. **Submit:** Device signs session JSON; send to agent + on-chain contract.
-4. **Agent Review:** Agent outputs trace JSON + CID to contract.
-5. **Finalize:** After contest ends, contract distributes pool to top-3 automatically.
+### **1. Create Competition Room**
 
----
+- Set exercise type (squats, pushups, bicep curls)
+- Define stake amount and duration
+- Deploy room contract on-chain
 
-## 🚀 Running the Demo
+### **2. Real-Time Workout**
 
-1. **Clone & Install**
+- Camera captures pose landmarks
+- MediaPipe counts reps with pose angle analysis
+- Dynamic scoring based on:
+  - **Range of Motion (40%)** - How deep/complete each rep is
+  - **Tempo Control (35%)** - Proper speed and timing
+  - **Form Consistency (25%)** - Smoothness and control
 
-   ```bash
-   git clone https://github.com/yourorg/fitstake
-   cd fitstake && yarn install
-   ```
-2. **Frontend**
+### **3. On-Chain Settlement**
 
-   ```bash
-   yarn dev
-   ```
-
-   Open `http://localhost:3000` and create a room.
-3. **Smart Contract**
-
-   ```bash
-   npx hardhat deploy --network mumbai
-   ```
-4. **Agent Server**
-
-   ```bash
-   cd agent && yarn start
-   ```
-5. **Demo Flow**
-
-   * Create a room with test tokens.
-   * Do a few squats; see rep counter live.
-   * Submit; watch agent trace + on-chain tx.
-   * Finalize contest; see automatic payouts.
+- Submit workout results to smart contract
+- Automated reward distribution to top performers
+- Transparent, verifiable competition outcomes
 
 ---
 
-## 📝 Roadmap
+## 🚀 Quick Start
 
-* **V2:** Global rooms, ZK proof of reps, wearable integration.
-* **V3:** SDK for any dApp to add verifiable physical work modules.
+### **Prerequisites**
+
+- Node.js 18+
+- PNPM package manager
+- MetaMask or Web3 wallet
+
+### **Installation**
+
+```bash
+git clone <repo-url>
+cd eth-global
+pnpm install
+```
+
+### **Development**
+
+```bash
+# Start web frontend
+pnpm -F web dev
+
+# Deploy contracts (separate terminal)
+pnpm -F blockchain hardhat ignition deploy ignition/modules/RoomFactory.ts --network sepolia
+
+# Generate contract types
+pnpm -F web wagmi generate
+```
+
+### **Access the App**
+
+Open `http://localhost:3000` and:
+
+1. Connect your wallet (Sepolia testnet)
+2. Create a new fitness room
+3. Start camera and begin workout
+4. Watch real-time rep counting and scoring!
 
 ---
 
-## 👥 Team
+## 💡 Key Innovations
 
-* **Exercise Science / Pose ML:** @you
-* **Smart Contracts:** @teammate
-* **Frontend & Agent:** @teammate
+### **🤖 Advanced Pose Analysis**
+
+- **Multi-angle Detection:** Tracks 33 pose landmarks in real-time
+- **Exercise-Specific Logic:** Custom angle calculations for different workouts
+- **Intelligent Rep Counting:** Peak detection with configurable thresholds
+- **Form Quality Scoring:** Fit-wise inspired algorithm for comprehensive analysis
+
+### **⚡ Performance Optimizations**
+
+- **Frame Rate Limiting:** Optimized to 10 FPS to prevent browser crashes
+- **Monotonic Timestamps:** Solved MediaPipe timestamp conflicts
+- **Rep-Based Analysis:** Scoring only on completed reps, not every frame
+- **Smart Logging:** Detailed debugging without console spam
+
+### **📱 Mobile-First Design**
+
+- **Responsive Sidebar:** Auto-hiding on mobile with logo button
+- **Statistics Cards:** Separate cards for rep count and form score
+- **Touch-Friendly Controls:** Large buttons and intuitive navigation
+- **Accessibility:** Screen reader support with proper ARIA labels
+
+---
+
+## 🏆 Current Implementation Status
+
+### ✅ **Completed**
+
+- [x] Real-time MediaPipe pose detection
+- [x] Dynamic scoring algorithm (ROM + Tempo + Consistency)
+- [x] Smart contract room system
+- [x] Mobile-responsive UI with statistics cards
+- [x] Performance optimizations and error handling
+- [x] Wallet integration with wagmi v2
+
+### 🔄 **In Progress**
+
+- [ ] AI agent verification layer
+- [ ] IPFS session storage
+- [ ] Multi-user competition logic
+- [ ] Advanced anti-cheat mechanisms
+
+### 🗺️ **Roadmap**
+
+- [ ] Live multiplayer competitions
+- [ ] Wearable device integration
+- [ ] ZK-proof verification
+- [ ] Cross-chain deployment
+- [ ] SDK for third-party integration
+
+---
+
+## 🛠️ Technical Details
+
+### **Smart Contracts**
+
+```solidity
+// Core contracts in /blockchain
+RoomFactory.sol     // Factory for creating competition rooms
+Room.sol           // Individual competition logic
+```
+
+### **Frontend Structure**
+
+```
+/web/src/
+├── components/
+│   ├── MediaPipeWorkout.tsx     // Main workout interface
+│   ├── AppSidebar.tsx          // Navigation with mobile support
+│   └── ui/                     // shadcn/ui components
+├── lib/
+│   ├── mediapipe-utils.ts      // Pose detection & scoring logic
+│   ├── wagmi.ts               // Web3 configuration
+│   └── contracts.ts           // Contract interactions
+└── app/
+    └── (app)/room/            // Competition pages
+```
+
+### **Pose Detection Pipeline**
+
+1. **Camera Stream:** Browser MediaStream API
+2. **Pose Landmarks:** MediaPipe extracts 33 3D points
+3. **Angle Calculation:** Custom geometric calculations for exercise-specific joints
+4. **Rep Detection:** Peak finding algorithm with configurable thresholds
+5. **Form Scoring:** Multi-factor analysis with weighted components
+
+---
+
+## 🏅 Demo Highlights
+
+- **🎯 Accurate Rep Counting:** Tested across different exercise types
+- **📊 Real-time Scoring:** Instant feedback on form quality  
+- **💳 Wallet Integration:** Seamless Web3 onboarding
+- **📱 Mobile Experience:** Works great on phones and tablets
+- **⚡ Performance:** Smooth 10 FPS detection without lag
+
+---
+
+## 👥 Contributing
+
+This is a hackathon project showcasing the potential of AI-verified fitness competitions on blockchain. The codebase demonstrates key concepts and can be extended for production use.
 
 ---
 
 ## ⚠️ Disclaimers
 
-* Anti-cheat and attestation are simplified for demo purposes.
-* Funds are testnet tokens only during hackathon.
+- **Testnet Only:** Currently deployed on Sepolia testnet
+- **Demo Purpose:** Simplified verification for hackathon scope
+- **No Financial Advice:** Educational project only
 
 ---
 
-### 🏆 Our One-Liner
+### � **Our Vision**
 
-> *“FitStake lets people stake crypto on their own workouts — and proves they actually did them.”*
+*"Making fitness competitions trustless, transparent, and rewarding through AI verification and blockchain technology."*
