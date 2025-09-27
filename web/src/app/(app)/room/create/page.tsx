@@ -18,6 +18,8 @@ import { ExerciseConfigGenerator } from '@/components/ExerciseConfigGenerator'
 import { getContractAddress, isContractDeployed } from '@/lib/contracts'
 import { useChainId } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
+import { flowTestnet } from '@/lib/wagmi'
+import { generateRoomEnsName, useEnsAvailability } from '@/hooks/use-ens'
 import type { ExerciseConfig } from '@/lib/mediapipe-utils'
 
 // Optimized exercise configurations for demo
@@ -86,6 +88,9 @@ export default function CreateRoomPage() {
   const [duration, setDuration] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
+
+  // Generate proposed ENS name based on exercise type
+  const proposedEnsName = exerciseType ? generateRoomEnsName('new', exerciseType) : null
 
   // Check if contracts are deployed on current chain
   const isSupported = isContractDeployed(chainId, 'RoomFactory')
@@ -170,6 +175,15 @@ export default function CreateRoomPage() {
   }
 
   if (!isSupported) {
+    const getNetworkInfo = () => {
+      if (chainId === sepolia.id) return { name: 'Sepolia Testnet', supported: true }
+      if (chainId === flowTestnet.id) return { name: 'Flow Testnet', supported: true }
+      if (chainId === 1) return { name: 'Ethereum Mainnet', supported: false }
+      return { name: `Chain ${chainId}`, supported: false }
+    }
+
+    const networkInfo = getNetworkInfo()
+    
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -179,28 +193,40 @@ export default function CreateRoomPage() {
               Unsupported Network
             </CardTitle>
             <CardDescription>
-              FitStake is currently only deployed on Sepolia testnet. Please switch networks to create a room.
+              FitStake is deployed on Sepolia and Flow testnets. Please switch networks to create a room.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Current network: {chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`}
+                Current network: {networkInfo.name}
               </AlertDescription>
             </Alert>
-            <Button 
-              onClick={() => switchChain({ chainId: sepolia.id })}
-              className="w-full"
-            >
-              Switch to Sepolia Testnet
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              You can get Sepolia ETH from faucets like{' '}
-              <a href="https://sepoliafaucet.com/" target="_blank" rel="noopener noreferrer" className="underline">
-                sepoliafaucet.com
-              </a>
-            </p>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => switchChain({ chainId: sepolia.id })}
+                className="w-full"
+                variant="outline"
+              >
+                Switch to Sepolia Testnet
+              </Button>
+              <Button 
+                onClick={() => switchChain({ chainId: flowTestnet.id })}
+                className="w-full"
+                variant="outline"
+              >
+                🌊 Switch to Flow Testnet
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground text-center space-y-1">
+              <p>
+                Get Sepolia ETH: <a href="https://sepoliafaucet.com/" target="_blank" rel="noopener noreferrer" className="underline">sepoliafaucet.com</a>
+              </p>
+              <p>
+                Get Flow testnet tokens: <a href="https://faucet.flow.com/fund-account" target="_blank" rel="noopener noreferrer" className="underline">faucet.flow.com</a>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -242,6 +268,19 @@ export default function CreateRoomPage() {
                     <SelectItem value="burpees">Burpees</SelectItem>
                   </SelectContent>
                 </Select>
+                {proposedEnsName && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="text-blue-600 dark:text-blue-400 font-medium">🏷️ Room ENS Name:</div>
+                      <code className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-blue-800 dark:text-blue-200 font-mono text-xs">
+                        {proposedEnsName}
+                      </code>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Share this name for easy room access (requires fitstake.eth domain)
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

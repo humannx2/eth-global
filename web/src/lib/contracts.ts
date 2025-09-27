@@ -1,5 +1,6 @@
 import { Chain } from 'viem'
 import { mainnet, sepolia, hardhat } from 'wagmi/chains'
+import { flowTestnet } from './wagmi'
 
 export interface ContractAddresses {
   RoomFactory: `0x${string}`
@@ -17,6 +18,10 @@ export const contractAddresses: Record<number, ContractAddresses> = {
   // Hardhat local
   [hardhat.id]: {
     RoomFactory: '0x0000000000000000000000000000000000000000', // Deploy locally
+  },
+  // Flow Testnet
+  [flowTestnet.id]: {
+    RoomFactory: '0x9dd8fbDDEE26E7DdFE19D0cc8BDf01A1144c8340',
   },
 }
 

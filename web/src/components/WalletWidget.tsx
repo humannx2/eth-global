@@ -13,11 +13,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Wallet, Copy, LogOut, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import { AddressDisplay } from './AddressDisplay'
+import { useEnsName, formatAddressWithEns } from '@/hooks/use-ens'
 
 export function WalletWidget() {
   const { address, isConnected } = useAccount()
   const { connect, connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
+  const { ensName } = useEnsName(address)
   const [copied, setCopied] = useState(false)
 
   const copyAddress = async () => {
@@ -61,8 +64,8 @@ export function WalletWidget() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full" />
-          <span className="font-mono text-xs">
-            {address?.slice(0, 6)}...{address?.slice(-4)}
+          <span className={ensName ? "text-xs" : "font-mono text-xs"}>
+            {formatAddressWithEns(address, ensName)}
           </span>
           <ChevronDown className="h-4 w-4" />
         </Button>
@@ -74,8 +77,11 @@ export function WalletWidget() {
               <div className="w-2 h-2 bg-green-500 rounded-full" />
               Connected
             </div>
-            <div className="text-xs font-mono text-muted-foreground mt-1">
-              {address?.slice(0, 6)}...{address?.slice(-4)}
+            <div className="text-xs mt-1">
+              {ensName && <div className="font-medium">{ensName}</div>}
+              <div className={`font-mono text-muted-foreground ${ensName ? 'text-xs' : ''}`}>
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </div>
             </div>
           </div>
         </DropdownMenuLabel>

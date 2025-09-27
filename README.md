@@ -7,7 +7,21 @@
 
 ## � What We Built
 
-FitStake is a **Web3 fitness competition platform** that combines AI-powered pose verification with on-chain staking. Users can create fitness rooms, stake crypto, and compete in real-time workouts verified by MediaPipe pose detection and dynamic scoring algorithms.
+FitStake is ## 📜 Contract Addresses
+
+### Sepolia Testnet
+
+- **RoomFactory:** `0x9839385033B11C2678BE017fA774BC05970775bA`
+
+### Flow Testnet
+
+- **RoomFactory:** `0x9dd8fbDDEE26E7DdFE19D0cc8BDf01A1144c8340`
+
+---
+
+## 🎯 Our Vision
+
+> *"Making fitness competitions trustless, transparent, and rewarding through AI verification and blockchain technology."*ess competition platform** that combines AI-powered pose verification with on-chain staking. Users can create fitness rooms, stake crypto, and compete in real-time workouts verified by MediaPipe pose detection and dynamic scoring algorithms.
 
 ### ✨ **Live Features**
 
@@ -33,7 +47,7 @@ FitStake is a **Web3 fitness competition platform** that combines AI-powered pos
 - **Frontend:** Next.js 15, TypeScript, shadcn/ui, Tailwind CSS
 - **Pose Detection:** MediaPipe Tasks Vision v0.10.3
 - **Blockchain:** Hardhat 3, Solidity, viem, wagmi v2
-- **Networks:** Sepolia Testnet, Polygon (planned)
+- **Networks:** Sepolia Testnet, Flow Testnet, Polygon (planned)
 - **Package Management:** PNPM workspaces
 
 ---
@@ -208,9 +222,19 @@ This is a hackathon project showcasing the potential of AI-verified fitness comp
 
 ## ⚠️ Disclaimers
 
-- **Testnet Only:** Currently deployed on Sepolia testnet
+- **Testnet Only:** Currently deployed on Sepolia and Flow testnets
 - **Demo Purpose:** Simplified verification for hackathon scope
 - **No Financial Advice:** Educational project only
+
+---
+
+## 📜 Contract Addresses
+
+### Sepolia Testnet
+- **RoomFactory:** `0x9839385033B11C2678BE017fA774BC05970775bA`
+
+### Flow Testnet  
+- **RoomFactory:** `0x9dd8fbDDEE26E7DdFE19D0cc8BDf01A1144c8340`
 
 ---
 

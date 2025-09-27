@@ -23,8 +23,11 @@ import {
 } from 'lucide-react'
 import { roomFactoryAbi, roomAbi } from '@/lib/wagmi-generated'
 import { MediaPipeWorkout } from '@/components/MediaPipeWorkout'
+import { AddressDisplay } from '@/components/AddressDisplay'
 import { getContractAddress, isContractDeployed } from '@/lib/contracts'
 import { sepolia } from 'wagmi/chains'
+import { flowTestnet } from '@/lib/wagmi'
+import { generateRoomEnsName } from '@/hooks/use-ens'
 import type { RepSegment } from '@/lib/mediapipe-utils'
 
 interface RoomInfo {
@@ -231,6 +234,15 @@ export default function RoomDetailsPage() {
   }
 
   if (!isSupported) {
+    const getNetworkInfo = () => {
+      if (chainId === sepolia.id) return { name: 'Sepolia Testnet', supported: true }
+      if (chainId === flowTestnet.id) return { name: 'Flow Testnet', supported: true }
+      if (chainId === 1) return { name: 'Ethereum Mainnet', supported: false }
+      return { name: `Chain ${chainId}`, supported: false }
+    }
+
+    const networkInfo = getNetworkInfo()
+    
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -240,22 +252,32 @@ export default function RoomDetailsPage() {
               Unsupported Network
             </CardTitle>
             <CardDescription>
-              This room is on Sepolia testnet. Please switch networks to view details.
+              FitStake is available on Sepolia and Flow testnets. Please switch networks to view rooms.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Current network: {chainId === 1 ? 'Ethereum Mainnet' : `Chain ${chainId}`}
+                Current network: {networkInfo.name}
               </AlertDescription>
             </Alert>
-            <Button 
-              onClick={() => switchChain({ chainId: sepolia.id })}
-              className="w-full"
-            >
-              Switch to Sepolia Testnet
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => switchChain({ chainId: sepolia.id })}
+                className="w-full"
+                variant="outline"
+              >
+                Switch to Sepolia Testnet
+              </Button>
+              <Button 
+                onClick={() => switchChain({ chainId: flowTestnet.id })}
+                className="w-full"
+                variant="outline"
+              >
+                🌊 Switch to Flow Testnet
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -278,6 +300,7 @@ export default function RoomDetailsPage() {
   const timeRemaining = formatTimeRemaining(roomInfo.createdAt, roomInfo.duration)
   const isExpired = timeRemaining === 'Expired'
   const isCreator = address === roomInfo.creator
+  const proposedEnsName = generateRoomEnsName(roomId, roomInfo.exerciseType)
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -300,6 +323,11 @@ export default function RoomDetailsPage() {
               <p className="text-muted-foreground">
                 {roomInfo.exerciseType.charAt(0).toUpperCase() + roomInfo.exerciseType.slice(1)} Competition
               </p>
+              <div className="mt-2">
+                <Badge variant="outline" className="font-mono text-xs">
+                  🏷️ {proposedEnsName}
+                </Badge>
+              </div>
             </div>
             <Badge variant={isExpired ? 'secondary' : 'default'}>
               {isExpired ? 'Expired' : 'Active'}
@@ -326,6 +354,14 @@ export default function RoomDetailsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Stake Amount</p>
                     <p className="font-semibold">{formatEther(roomInfo.stakeAmount)} ETH</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Creator</p>
+                    <AddressDisplay 
+                      address={roomInfo.creator as `0x${string}`}
+                      className="font-semibold"
+                      showBadge
+                    />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Time Remaining</p>
@@ -501,9 +537,11 @@ export default function RoomDetailsPage() {
                               #{index + 1}
                             </Badge>
                             <div>
-                              <p className="font-medium">
-                                {session.participant === address ? 'You' : `${session.participant.slice(0, 6)}...`}
-                              </p>
+                              <AddressDisplay 
+                                address={session.participant as `0x${string}`}
+                                className="font-medium"
+                                truncate={session.participant !== address}
+                              />
                               <p className="text-sm text-muted-foreground">
                                 {Number(session.repCount)} reps, {Number(session.formScore)}% form
                               </p>
