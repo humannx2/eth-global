@@ -12,9 +12,6 @@ import {
   Menu, 
   Trophy, 
   Target, 
-  Users, 
-  BarChart3, 
-  Settings,
   Home,
   Plus
 } from 'lucide-react'
@@ -24,8 +21,6 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Competitions', href: '/room', icon: Trophy },
   { name: 'Create Room', href: '/room/create', icon: Plus },
-  { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-  { name: 'Portfolio', href: '/portfolio', icon: Users },
 ]
 
 interface AppSidebarProps {
