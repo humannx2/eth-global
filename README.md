@@ -1,6 +1,6 @@
 # 🏋️‍♂️ FitStake – AI-Verified Fitness Competitions on Web3
 
-> **Stake. Move. Win.**  
+> **Stake. Sweat. Win.**  
 > Real-time pose detection meets blockchain staking for verifiable fitness competitions.
 
 ---
@@ -93,8 +93,6 @@ pnpm -F web wagmi generate
 ```
 
 ### **Access the App**
-
-Open `http://localhost:3000` and:
 
 1. Connect your wallet (Sepolia testnet)
 2. Create a new fitness room
