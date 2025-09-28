@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAccount, useReadContract, useChainId, usePublicClient, useSwitchChain } from 'wagmi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,8 +30,16 @@ export default function RoomsPage() {
   const chainId = useChainId()
   const publicClient = usePublicClient()
   const { switchChain } = useSwitchChain()
+  const router = useRouter()
   const [rooms, setRooms] = useState<RoomInfo[]>([])
   const [loading, setLoading] = useState(false)
+
+  // Redirect to home page with wallet connection dialog if not connected
+  useEffect(() => {
+    if (!isConnected) {
+      router.push('/?showWalletDialog=true&redirectTo=/room')
+    }
+  }, [isConnected, router])
 
   // Check if contracts are deployed on current chain
   const isSupported = isContractDeployed(chainId, 'RoomFactory')

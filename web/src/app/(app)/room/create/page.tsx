@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
 import { parseEther } from 'viem'
@@ -89,6 +89,13 @@ export default function CreateRoomPage() {
   const [customEnsName, setCustomEnsName] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<ExerciseConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
+
+  // Redirect to home page with wallet connection dialog if not connected
+  useEffect(() => {
+    if (!isConnected) {
+      router.push('/?showWalletDialog=true&redirectTo=/room/create')
+    }
+  }, [isConnected, router])
 
   // Generate proposed ENS name based on exercise type
   const proposedEnsName = exerciseType ? generateRoomEnsName('new', exerciseType) : null

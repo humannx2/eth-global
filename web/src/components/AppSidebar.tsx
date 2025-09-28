@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAccount } from 'wagmi'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { WalletWidget } from './WalletWidget'
 import { NetworkSwitcher } from './NetworkSwitcher'
+import { WalletConnectionDialog } from './WalletConnectionDialog'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -33,12 +35,44 @@ interface AppSidebarProps {
 
 export function AppSidebar({ children }: AppSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isConnected } = useAccount()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false)
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
 
   // Auto-close sidebar on route changes (mobile only)
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
+
+  const handleProtectedNavigation = (path: string, itemName: string) => {
+    if (isConnected) {
+      router.push(path)
+    } else {
+      setPendingRedirect(path)
+      setWalletDialogOpen(true)
+    }
+    setIsMobileMenuOpen(false)
+  }
+
+  const getDialogContent = () => {
+    if (pendingRedirect === '/room') {
+      return {
+        title: "Connect Wallet to View Competitions",
+        description: "Please connect your wallet to view and participate in fitness competitions."
+      }
+    } else if (pendingRedirect === '/room/create') {
+      return {
+        title: "Connect Wallet to Create Room", 
+        description: "Please connect your wallet to create a fitness competition room."
+      }
+    }
+    return {
+      title: "Connect Wallet Required",
+      description: "Please connect your wallet to access this feature."
+    }
+  }
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -62,6 +96,30 @@ export function AppSidebar({ children }: AppSidebarProps) {
           const Icon = item.icon
           const isActive = pathname === item.href || 
             (item.href !== '/' && pathname.startsWith(item.href))
+          const requiresWallet = item.href !== '/'
+          
+          if (requiresWallet) {
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleProtectedNavigation(item.href, item.name)}
+                className={cn(
+                  'w-full flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors text-left',
+                  isActive 
+                    ? 'bg-accent text-accent-foreground' 
+                    : 'text-muted-foreground'
+                )}
+              >
+                <Icon className="mr-3 h-4 w-4" />
+                {item.name}
+                {item.name === 'Competitions' && (
+                  <Badge variant="secondary" className="ml-auto">
+                    New
+                  </Badge>
+                )}
+              </button>
+            )
+          }
           
           return (
             <Link
@@ -77,11 +135,6 @@ export function AppSidebar({ children }: AppSidebarProps) {
             >
               <Icon className="mr-3 h-4 w-4" />
               {item.name}
-              {item.name === 'Competitions' && (
-                <Badge variant="secondary" className="ml-auto">
-                  New
-                </Badge>
-              )}
             </Link>
           )
         })}
@@ -137,6 +190,20 @@ export function AppSidebar({ children }: AppSidebarProps) {
           {children}
         </main>
       </div>
+
+      {/* Wallet Connection Dialog */}
+      <WalletConnectionDialog
+        open={walletDialogOpen}
+        onOpenChange={(open) => {
+          setWalletDialogOpen(open)
+          if (!open) {
+            setPendingRedirect(null)
+          }
+        }}
+        redirectTo={pendingRedirect || undefined}
+        title={getDialogContent().title}
+        description={getDialogContent().description}
+      />
     </div>
   )
 }

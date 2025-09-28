@@ -1,12 +1,62 @@
+'use client'
+
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Shield, Trophy, Target, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { WalletConnectionDialog } from "@/components/WalletConnectionDialog";
 
 export default function HomePage() {
+  const { isConnected } = useAccount();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
+
+  // Handle URL parameters for automatic wallet dialog display
+  useEffect(() => {
+    const showWalletDialog = searchParams.get('showWalletDialog');
+    const redirectTo = searchParams.get('redirectTo');
+    
+    if (showWalletDialog === 'true' && redirectTo && !isConnected) {
+      setPendingRedirect(redirectTo);
+      setWalletDialogOpen(true);
+      // Clean up URL parameters
+      router.replace('/', { scroll: false });
+    }
+  }, [searchParams, isConnected, router]);
+
+  const handleProtectedNavigation = (path: string, actionName: string) => {
+    if (isConnected) {
+      router.push(path);
+    } else {
+      setPendingRedirect(path);
+      setWalletDialogOpen(true);
+    }
+  };
+
+  const getDialogContent = () => {
+    if (pendingRedirect === '/room') {
+      return {
+        title: "Connect Wallet to View Competitions",
+        description: "Please connect your wallet to view and participate in fitness competitions."
+      };
+    } else if (pendingRedirect === '/room/create') {
+      return {
+        title: "Connect Wallet to Create Room",
+        description: "Please connect your wallet to create a fitness competition room."
+      };
+    }
+    return {
+      title: "Connect Wallet Required",
+      description: "Please connect your wallet to access this feature."
+    };
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -23,13 +73,19 @@ export default function HomePage() {
             <span className="text-xl font-bold">StakeFit</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/room" className="web3-morph-btn btn-secondary btn-sm">
+            <Button 
+              variant="ghost" 
+              className="secondary-accent-hover"
+              onClick={() => handleProtectedNavigation('/room', 'View Competitions')}
+            >
               View Competitions
-            </Link>
-            <Link href="/room/create" className="web3-morph-btn btn-primary btn-sm">
+            </Button>
+            <Button 
+              className="bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none"
+              onClick={() => handleProtectedNavigation('/room/create', 'Create Room')}
+            >
               Create Room
-            </Link>
-            <DarkModeToggle />
+            </Button>
           </div>
         </div>
       </div>
@@ -56,14 +112,22 @@ export default function HomePage() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/room" className="web3-morph-btn btn-secondary btn-lg">
+            <Button 
+              size="lg" 
+              className="text-lg btn-secondary-accent"
+              onClick={() => handleProtectedNavigation('/room', 'View Competitions')}
+            >
               <Trophy className="mr-2 h-5 w-5" />
               View Competitions
-            </Link>
-            <Link href="/room/create" className="web3-morph-btn btn-primary btn-lg">
+            </Button>
+            <Button 
+              size="lg" 
+              className="text-lg bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none"
+              onClick={() => handleProtectedNavigation('/room/create', 'Create Room')}
+            >
               <Target className="mr-2 h-5 w-5" />
               Create Room
-            </Link>
+            </Button>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
@@ -105,6 +169,20 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Wallet Connection Dialog */}
+      <WalletConnectionDialog
+        open={walletDialogOpen}
+        onOpenChange={(open) => {
+          setWalletDialogOpen(open);
+          if (!open) {
+            setPendingRedirect(null);
+          }
+        }}
+        redirectTo={pendingRedirect || undefined}
+        title={getDialogContent().title}
+        description={getDialogContent().description}
+      />
     </div>
   );
 }
