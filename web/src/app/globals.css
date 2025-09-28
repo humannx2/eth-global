@@ -316,4 +316,86 @@
       background-position: 0% 100%;
     }
   }
+  
+  /* Web3 Gradient Accent Pill */
+  .web3-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 20px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      135deg,
+      #4AA7C0,
+      #F28C82,
+      #E94C4C,
+      #4AA7C0,
+      #F28C82
+    );
+    background-size: 300% 300%;
+    animation: gradientShimmer 3s ease-in-out infinite;
+    box-shadow: 
+      0 0 20px rgba(74, 167, 192, 0.4),
+      0 0 40px rgba(242, 140, 130, 0.3),
+      0 0 60px rgba(233, 76, 76, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .web3-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.2),
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0.1)
+    );
+    background-size: 200% 200%;
+    animation: shimmerOverlay 2s ease-in-out infinite;
+  }
+  
+  .web3-badge-text {
+    position: relative;
+    z-index: 1;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.025em;
+  }
+  
+  .web3-badge:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 
+      0 0 30px rgba(74, 167, 192, 0.6),
+      0 0 60px rgba(242, 140, 130, 0.4),
+      0 0 90px rgba(233, 76, 76, 0.3);
+  }
+  
+  .web3-badge:hover::before {
+    animation-duration: 1s;
+  }
+  
+  @keyframes gradientShimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  @keyframes shimmerOverlay {
+    0%, 100% {
+      background-position: 0% 50%;
+      opacity: 0.3;
+    }
+    50% {
+      background-position: 100% 50%;
+      opacity: 0.7;
+    }
+  }
 }

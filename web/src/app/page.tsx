@@ -22,12 +22,16 @@ export default function HomePage() {
             <span className="text-xl font-bold">StakeFit</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Button asChild variant="ghost" className="secondary-accent-hover">
-              <Link href="/room">View Competitions</Link>
-            </Button>
-            <Button asChild className="bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none">
-              <Link href="/room/create">Create Room</Link>
-            </Button>
+            <Link href="/room" className="web3-gradient-btn btn-sm">
+              <span className="web3-gradient-btn-content">
+                View Competitions
+              </span>
+            </Link>
+            <Link href="/room/create" className="web3-gradient-btn btn-sm">
+              <span className="web3-gradient-btn-content">
+                Create Room
+              </span>
+            </Link>
           </div>
         </div>
       </div>
@@ -36,9 +40,11 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto">
           <div className="mb-6">
-            <Badge variant="outline" className="mb-4">
-              🏋️‍♂️ Fitness × Web3 × AI
-            </Badge>
+            <div className="web3-badge mb-4">
+              <span className="web3-badge-text">
+                🏋️‍♂️ Fitness × Web3 × AI
+              </span>
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
               StakeFit
               {/* <span className="text-primary"> Competitions</span> */}
@@ -52,18 +58,18 @@ export default function HomePage() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button asChild size="lg" className="text-lg btn-secondary-accent">
-              <Link href="/room">
+            <Link href="/room" className="web3-gradient-btn btn-lg">
+              <span className="web3-gradient-btn-content">
                 <Trophy className="mr-2 h-5 w-5" />
                 View Competitions
-              </Link>
-            </Button>
-            <Button asChild size="lg" className="text-lg bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none">
-              <Link href="/room/create">
+              </span>
+            </Link>
+            <Link href="/room/create" className="web3-gradient-btn btn-lg">
+              <span className="web3-gradient-btn-content">
                 <Target className="mr-2 h-5 w-5" />
                 Create Room
-              </Link>
-            </Button>
+              </span>
+            </Link>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
