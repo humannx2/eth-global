@@ -1,4 +1,3 @@
-import { Chain } from 'viem'
 import { mainnet, sepolia, hardhat } from 'wagmi/chains'
 import { flowTestnet } from './wagmi'
 
