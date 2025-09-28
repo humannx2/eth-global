@@ -398,4 +398,248 @@
       opacity: 0.7;
     }
   }
+  
+  /* Dark Mode Toggle Button */
+  .dark-mode-toggle {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(
+      45deg,
+      #4AA7C0,
+      #F28C82,
+      #E94C4C,
+      #4AA7C0,
+      #F28C82,
+      #E94C4C
+    );
+    background-size: 300% 300%;
+    animation: gradientFlow 4s ease-in-out infinite;
+    padding: 2px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    overflow: hidden;
+  }
+  
+  .dark-mode-toggle::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    background: linear-gradient(
+      45deg,
+      rgba(74, 167, 192, 0.3),
+      rgba(242, 140, 130, 0.3),
+      rgba(233, 76, 76, 0.3),
+      rgba(74, 167, 192, 0.3)
+    );
+    background-size: 300% 300%;
+    border-radius: 50%;
+    filter: blur(10px);
+    opacity: 0.4;
+    z-index: -1;
+    animation: gradientFlow 4s ease-in-out infinite;
+    transition: opacity 0.3s ease;
+  }
+  
+  .dark-mode-toggle-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    z-index: 1;
+  }
+  
+  .dark-mode-toggle:hover {
+    transform: scale(1.1);
+    animation-duration: 2s;
+  }
+  
+  .dark-mode-toggle:hover::after {
+    opacity: 0.8;
+    filter: blur(20px);
+    animation-duration: 2s;
+  }
+  
+  .dark-mode-toggle:hover .dark-mode-toggle-content {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark-mode-toggle:active {
+    transform: scale(1.05);
+  }
+  
+  /* Dark mode styles */
+  .dark .dark-mode-toggle-content {
+    background: #1a1a1a;
+    color: white;
+  }
+  
+  /* Enhanced dark mode theming */
+  .dark {
+    --background: #0a0a0a;
+    --foreground: #fafafa;
+    --card: #1a1a1a;
+    --card-foreground: #fafafa;
+    --popover: #1a1a1a;
+    --popover-foreground: #fafafa;
+    --primary: #fafafa;
+    --primary-foreground: #0a0a0a;
+    --secondary: #262626;
+    --secondary-foreground: #fafafa;
+    --muted: #262626;
+    --muted-foreground: #a1a1aa;
+    --accent: #262626;
+    --accent-foreground: #fafafa;
+    --border: #262626;
+    --input: #262626;
+    --ring: #525252;
+  }
+  
+  /* Dark mode feature cards */
+  .dark .feature-card-content {
+    background: #1a1a1a !important;
+    color: #fafafa;
+  }
+  
+  /* Dark mode Web3 badge */
+  .dark .web3-badge-text {
+    color: white;
+  }
+  
+  /* Web3 Morphing Buttons */
+  .web3-morph-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 32px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 1;
+  }
+  
+  /* Text content wrapper */
+  .web3-morph-btn > * {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Primary Button - Red */
+  .web3-morph-btn.btn-primary {
+    background: #E94C4C;
+    box-shadow: 0 4px 15px rgba(233, 76, 76, 0.3);
+  }
+  
+  /* Secondary Button - Blue */
+  .web3-morph-btn.btn-secondary {
+    background: #4AA7C0;
+    box-shadow: 0 4px 15px rgba(74, 167, 192, 0.3);
+  }
+  
+  /* Tertiary Button - Peach */
+  .web3-morph-btn.btn-tertiary {
+    background: #F28C82;
+    box-shadow: 0 4px 15px rgba(242, 140, 130, 0.3);
+  }
+  
+  /* Gradient border overlay (hidden by default) */
+  .web3-morph-btn::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(
+      45deg,
+      #4AA7C0,
+      #F28C82,
+      #E94C4C,
+      #4AA7C0,
+      #F28C82,
+      #E94C4C
+    );
+    background-size: 300% 300%;
+    border-radius: 9999px;
+    opacity: 0;
+    animation: gradientFlow 4s ease-in-out infinite;
+    transition: opacity 0.4s ease;
+    z-index: -1;
+  }
+  
+  /* Glow effect (hidden by default) */
+  .web3-morph-btn::after {
+    content: '';
+    position: absolute;
+    inset: -15px;
+    background: linear-gradient(
+      45deg,
+      rgba(74, 167, 192, 0.4),
+      rgba(242, 140, 130, 0.4),
+      rgba(233, 76, 76, 0.4),
+      rgba(74, 167, 192, 0.4)
+    );
+    background-size: 300% 300%;
+    border-radius: 9999px;
+    filter: blur(15px);
+    opacity: 0;
+    z-index: -2;
+    animation: gradientFlow 4s ease-in-out infinite;
+    transition: opacity 0.4s ease;
+  }
+  
+  /* Hover state - morph to gradient border */
+  .web3-morph-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    background: white;
+    color: #2D2D2D;
+    text-shadow: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  .web3-morph-btn:hover::before {
+    opacity: 1;
+    animation-duration: 2s;
+  }
+  
+  .web3-morph-btn:hover::after {
+    opacity: 0.6;
+    filter: blur(20px);
+    animation-duration: 2s;
+  }
+  
+  /* Active state */
+  .web3-morph-btn:active {
+    transform: translateY(0) scale(1.02);
+  }
+  
+  /* Size variants */
+  .web3-morph-btn.btn-lg {
+    padding: 16px 40px;
+    font-size: 1.125rem;
+  }
+  
+  .web3-morph-btn.btn-sm {
+    padding: 8px 24px;
+    font-size: 0.875rem;
+  }
+  
+  /* Dark mode button adjustments */
+  .dark .web3-morph-btn:hover {
+    background: #1a1a1a;
+    color: #fafafa;
+  }
 }

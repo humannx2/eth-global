@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Shield, Trophy, Target, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 export default function HomePage() {
   return (
@@ -22,16 +23,13 @@ export default function HomePage() {
             <span className="text-xl font-bold">StakeFit</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/room" className="web3-gradient-btn btn-sm">
-              <span className="web3-gradient-btn-content">
-                View Competitions
-              </span>
+            <Link href="/room" className="web3-morph-btn btn-secondary btn-sm">
+              View Competitions
             </Link>
-            <Link href="/room/create" className="web3-gradient-btn btn-sm">
-              <span className="web3-gradient-btn-content">
-                Create Room
-              </span>
+            <Link href="/room/create" className="web3-morph-btn btn-primary btn-sm">
+              Create Room
             </Link>
+            <DarkModeToggle />
           </div>
         </div>
       </div>
@@ -58,17 +56,13 @@ export default function HomePage() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/room" className="web3-gradient-btn btn-lg">
-              <span className="web3-gradient-btn-content">
-                <Trophy className="mr-2 h-5 w-5" />
-                View Competitions
-              </span>
+            <Link href="/room" className="web3-morph-btn btn-secondary btn-lg">
+              <Trophy className="mr-2 h-5 w-5" />
+              View Competitions
             </Link>
-            <Link href="/room/create" className="web3-gradient-btn btn-lg">
-              <span className="web3-gradient-btn-content">
-                <Target className="mr-2 h-5 w-5" />
-                Create Room
-              </span>
+            <Link href="/room/create" className="web3-morph-btn btn-primary btn-lg">
+              <Target className="mr-2 h-5 w-5" />
+              Create Room
             </Link>
           </div>
 
