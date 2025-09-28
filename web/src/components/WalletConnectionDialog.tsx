@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useAccount, useConnect } from 'wagmi'
 import { Button } from '@/components/ui/button'
@@ -90,7 +90,7 @@ export function WalletConnectionDialog({
 
           <div className="text-xs text-muted-foreground text-center">
             <p>
-              Don't have a wallet? Try{' '}
+              Don&apos;t have a wallet? Try&nbsp;
               <a 
                 href="https://metamask.io/" 
                 target="_blank" 

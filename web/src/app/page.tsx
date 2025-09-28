@@ -1,37 +1,49 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAccount } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Zap, Shield, Trophy, Target, Users } from "lucide-react";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { Zap, Shield, Trophy, Target, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { WalletConnectionDialog } from "@/components/WalletConnectionDialog";
 
-export default function HomePage() {
+// Separate component to handle search params
+function SearchParamsHandler({ 
+  onWalletDialogChange, 
+  onPendingRedirectChange 
+}: {
+  onWalletDialogChange: (open: boolean) => void;
+  onPendingRedirectChange: (redirect: string | null) => void;
+}) {
   const { isConnected } = useAccount();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
-  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
 
-  // Handle URL parameters for automatic wallet dialog display
   useEffect(() => {
     const showWalletDialog = searchParams.get('showWalletDialog');
     const redirectTo = searchParams.get('redirectTo');
     
     if (showWalletDialog === 'true' && redirectTo && !isConnected) {
-      setPendingRedirect(redirectTo);
-      setWalletDialogOpen(true);
+      onPendingRedirectChange(redirectTo);
+      onWalletDialogChange(true);
       // Clean up URL parameters
       router.replace('/', { scroll: false });
     }
-  }, [searchParams, isConnected, router]);
+  }, [searchParams, isConnected, router, onWalletDialogChange, onPendingRedirectChange]);
 
-  const handleProtectedNavigation = (path: string, actionName: string) => {
+  return null;
+}
+
+export default function HomePage() {
+  const { isConnected } = useAccount();
+  const router = useRouter();
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
+
+  const handleProtectedNavigation = (path: string) => {
     if (isConnected) {
       router.push(path);
     } else {
@@ -76,13 +88,13 @@ export default function HomePage() {
             <Button 
               variant="ghost" 
               className="secondary-accent-hover"
-              onClick={() => handleProtectedNavigation('/room', 'View Competitions')}
+              onClick={() => handleProtectedNavigation('/room')}
             >
               View Competitions
             </Button>
             <Button 
               className="bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none"
-              onClick={() => handleProtectedNavigation('/room/create', 'Create Room')}
+              onClick={() => handleProtectedNavigation('/room/create')}
             >
               Create Room
             </Button>
@@ -115,7 +127,7 @@ export default function HomePage() {
             <Button 
               size="lg" 
               className="text-lg btn-secondary-accent"
-              onClick={() => handleProtectedNavigation('/room', 'View Competitions')}
+              onClick={() => handleProtectedNavigation('/room')}
             >
               <Trophy className="mr-2 h-5 w-5" />
               View Competitions
@@ -123,7 +135,7 @@ export default function HomePage() {
             <Button 
               size="lg" 
               className="text-lg bg-[#E94C4C] hover:bg-[#d63c3c] text-white border-none"
-              onClick={() => handleProtectedNavigation('/room/create', 'Create Room')}
+              onClick={() => handleProtectedNavigation('/room/create')}
             >
               <Target className="mr-2 h-5 w-5" />
               Create Room

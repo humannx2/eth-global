@@ -1,4 +1,5 @@
 // 0G Storage API - Store and retrieve workout sessions
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import { ethers } from 'ethers'
 
@@ -9,9 +10,6 @@ const OG_STORAGE_CONFIG = {
   MIN_BALANCE: '0.05',
   FUNDING_AMOUNT: '0.1'
 }
-
-// In-memory storage for session metadata (in production, use a database)
-const sessionStorage = new Map<string, any>()
 
 interface WorkoutSession {
   sessionId: string
@@ -38,6 +36,14 @@ interface WorkoutSession {
     storage_cid: string
   }
 }
+
+// Extended interface for sessions stored with additional 0G Storage metadata
+interface WorkoutSessionWithTxSeq extends WorkoutSession {
+  txSeq?: string
+}
+
+// In-memory storage for session metadata (in production, use a database)
+const sessionStorage = new Map<string, WorkoutSessionWithTxSeq>()
 
 // Store workout session on 0G Storage Network
 export async function POST(req: NextRequest) {
@@ -73,10 +79,11 @@ export async function POST(req: NextRequest) {
       session.metadata.storage_cid = `txSeq_${txSeq}`
       
       // Also store reference in memory for quick access
-      sessionStorage.set(`${session.metadata.user}_${session.sessionId}`, {
+      const sessionWithTxSeq: WorkoutSessionWithTxSeq = {
         ...session,
         txSeq
-      })
+      }
+      sessionStorage.set(`${session.metadata.user}_${session.sessionId}`, sessionWithTxSeq)
       
       console.log('✅ Stored workout session on 0G Storage:', txSeq)
       
@@ -137,7 +144,7 @@ export async function GET(req: NextRequest) {
       success: true,
       sessions: sessions,
       total: sessions.length,
-      provider: sessions.length > 0 && (sessions[0] as any).txSeq ? '0g-storage-network' : 'memory'
+      provider: sessions.length > 0 && sessions[0].txSeq ? '0g-storage-network' : 'memory'
     })
 
   } catch (error) {
@@ -181,7 +188,6 @@ async function storeOn0GStorage(data: string, sessionId: string): Promise<string
   
   // Step 1: Submit transaction to 0G Chain (Flow contract)
   const provider = new ethers.JsonRpcProvider(OG_STORAGE_CONFIG.TESTNET_RPC)
-  const connectedWallet = wallet.connect(provider)
   
   try {
     // Check wallet balance
@@ -256,8 +262,8 @@ async function downloadFromIndexer(txSeq: string): Promise<any> {
 }
 
 // Retrieve sessions from 0G Storage Network
-async function getSessionsFrom0GStorage(userAddress: string, exerciseType?: string | null, limit: number = 10): Promise<WorkoutSession[]> {
-  const sessions: WorkoutSession[] = []
+async function getSessionsFrom0GStorage(userAddress: string, exerciseType?: string | null, limit: number = 10): Promise<WorkoutSessionWithTxSeq[]> {
+  const sessions: WorkoutSessionWithTxSeq[] = []
   
   // First, check memory storage for quick access
   for (const [key, session] of sessionStorage.entries()) {
@@ -309,7 +315,7 @@ async function getSessionsFrom0GStorage(userAddress: string, exerciseType?: stri
 }
 
 // Query indexer for user's workout sessions
-async function queryIndexerForUserSessions(userAddress: string, exerciseType?: string | null): Promise<WorkoutSession[]> {
+async function queryIndexerForUserSessions(userAddress: string, exerciseType?: string | null): Promise<WorkoutSessionWithTxSeq[]> {
   try {
     // In a real implementation, you would:
     // 1. Query indexer for files containing user address in metadata
@@ -331,9 +337,9 @@ async function queryIndexerForUserSessions(userAddress: string, exerciseType?: s
 }
 
 // Generate sample sessions for demo purposes
-function generateSampleSessions(userAddress: string, limit: number, exerciseType?: string | null): WorkoutSession[] {
+function generateSampleSessions(userAddress: string, limit: number, exerciseType?: string | null): WorkoutSessionWithTxSeq[] {
   const exercises = ['squats', 'pushups', 'lunges', 'burpees']
-  const sessions: WorkoutSession[] = []
+  const sessions: WorkoutSessionWithTxSeq[] = []
   
   // Generate sample pose landmarks for video playback
   const generatePoseLandmarks = (frameCount: number) => {
