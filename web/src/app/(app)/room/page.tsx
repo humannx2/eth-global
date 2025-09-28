@@ -137,7 +137,7 @@ export default function RoomsPage() {
               Unsupported Network
             </CardTitle>
             <CardDescription>
-              FitStake is currently only deployed on Sepolia testnet. Please switch networks to continue.
+              StakeFit is currently only deployed on Sepolia testnet. Please switch networks to continue.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
