@@ -94,9 +94,11 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto">
           <div className="mb-6">
-            <Badge variant="outline" className="mb-4">
-              🏋️‍♂️ Fitness × Web3 × AI
-            </Badge>
+            <div className="web3-badge mb-4">
+              <span className="web3-badge-text">
+                🏋️‍♂️ Fitness × Web3 × AI
+              </span>
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
               StakeFit
               {/* <span className="text-primary"> Competitions</span> */}

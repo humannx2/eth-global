@@ -767,7 +767,7 @@ export function getExerciseConfig(exerciseName: string): ExerciseConfig | null {
   }
   
   // No fallback - configs should come from AI generation
-  console.error(`No configuration found for exercise: ${exerciseName}. Generate one using /api/generate-config`);
+  console.error(`No configuration found for exercise: ${exerciseName}. Use AI Agent Chat to generate one.`);
   return null;
 }
 

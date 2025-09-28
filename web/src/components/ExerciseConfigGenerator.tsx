@@ -230,14 +230,14 @@ export function ExerciseConfigGenerator({ onConfigGenerated, onError }: Exercise
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Angle Points</Label>
-                    <p className="font-medium">{generatedConfig.anglePoints.length} joints</p>
+                    <p className="font-medium">{generatedConfig.anglePoints?.length || 0} joints</p>
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-muted-foreground">Tracked Joints</Label>
                   <div className="mt-2 space-y-2">
-                    {generatedConfig.anglePoints.map((point, index) => (
+                    {generatedConfig.anglePoints?.map((point, index) => (
                       <div key={index} className="text-sm bg-background rounded p-2">
                         <div className="font-medium">{point.name}</div>
                         <div className="text-muted-foreground">

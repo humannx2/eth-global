@@ -406,12 +406,12 @@ export default function CreateRoomPage() {
                       AI Configuration Generated ✓
                     </div>
                     <p className="text-sm text-green-700 mb-2">
-                      Generated MediaPipe configuration for &quot;{generatedConfig.name}&quot; with {generatedConfig.anglePoints.length} tracking points.
+                      Generated MediaPipe configuration for &quot;{generatedConfig.name}&quot; with {generatedConfig.anglePoints?.length || 0} tracking points.
                     </p>
                     <div className="text-xs text-green-600 space-y-1">
                       <div>• Initial Direction: {generatedConfig.initialDirection}</div>
                       <div>• Peak Distance: {generatedConfig.minPeakDistance} frames</div>
-                      <div>• Tracking Points: {generatedConfig.anglePoints.length}</div>
+                      <div>• Tracking Points: {generatedConfig.anglePoints?.length || 0}</div>
                     </div>
                   </div>
                 ) : (
