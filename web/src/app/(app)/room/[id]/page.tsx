@@ -385,21 +385,9 @@ export default function RoomDetailsPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">🥇 1st Place:</span>
+                      <span className="text-muted-foreground">🏆 Winner Takes All:</span>
                       <span className="font-semibold text-yellow-600">
-                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(50) / BigInt(100))} ETH (50%)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">🥈 2nd Place:</span>
-                      <span className="font-semibold text-gray-600">
-                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(30) / BigInt(100))} ETH (30%)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">🥉 3rd Place:</span>
-                      <span className="font-semibold text-amber-600">
-                        {formatEther((roomStatus?.[2] || BigInt(0)) * BigInt(20) / BigInt(100))} ETH (20%)
+                        {formatEther(roomStatus?.[2] || BigInt(0))} ETH (100%)
                       </span>
                     </div>
                   </div>
@@ -530,24 +518,24 @@ export default function RoomDetailsPage() {
                       .map((session, index) => (
                         <div 
                           key={index}
-                          className="flex items-center justify-between p-3 border rounded-lg"
+                          className="flex items-center justify-between p-3 border rounded-lg gap-3"
                         >
-                          <div className="flex items-center gap-3">
-                            <Badge variant={index === 0 ? 'default' : 'secondary'}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Badge variant={index === 0 ? 'default' : 'secondary'} className="shrink-0">
                               #{index + 1}
                             </Badge>
-                            <div>
+                            <div className="min-w-0 flex-1">
                               <AddressDisplay 
                                 address={session.participant as `0x${string}`}
-                                className="font-medium"
-                                truncate={session.participant !== address}
+                                className="font-medium block truncate"
+                                truncate={true}
                               />
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-muted-foreground truncate">
                                 {Number(session.repCount)} reps, {Number(session.formScore)}% form
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             <div className="font-bold">{session.score}</div>
                             <div className="text-xs text-muted-foreground">score</div>
                           </div>

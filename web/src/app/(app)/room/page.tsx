@@ -172,10 +172,10 @@ export default function RoomsPage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Fitness Competitions</h1>
             <p className="text-muted-foreground">
-              💪 Compete, perform, earn! Win up to 50% of the prize pool for 1st place.
+              💪 Compete, perform, earn! Winner takes the entire prize pool!
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              🏆 Top 3 winners share rewards: 50% • 30% • 20%
+              🏆 Champion claims 100% of the rewards
             </p>
           </div>
           <Link href="/room/create">
@@ -282,11 +282,10 @@ export default function RoomsPage() {
                     
                     {/* Prize Breakdown */}
                     <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-3 rounded-lg border">
-                      <div className="text-xs font-medium text-gray-700 mb-1">💰 Win up to:</div>
-                      <div className="flex justify-between text-xs">
-                        <span>🥇 {formatEther(room.stakeAmount * BigInt(50) / BigInt(100))} ETH</span>
-                        <span>🥈 {formatEther(room.stakeAmount * BigInt(30) / BigInt(100))} ETH</span>
-                        <span>🥉 {formatEther(room.stakeAmount * BigInt(20) / BigInt(100))} ETH</span>
+                      <div className="text-xs font-medium text-gray-700 mb-1">🏆 Winner Takes All:</div>
+                      <div className="text-center">
+                        <span className="text-lg font-bold text-yellow-600">{formatEther(room.stakeAmount)} ETH</span>
+                        <div className="text-xs text-gray-600">100% to the champion!</div>
                       </div>
                     </div>
                     

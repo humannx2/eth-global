@@ -83,9 +83,9 @@ export default function HomePage() {
               <Card className="feature-card-content text-center border-0">
                 <CardContent className="pt-6">
                   <Zap className="h-12 w-12 mx-auto mb-4 text-primary" />
-                  <CardTitle className="mb-2">Smart Rewards</CardTitle>
+                  <CardTitle className="mb-2">Winner Takes All</CardTitle>
                   <CardDescription>
-                    Top 3 finishers share the prize pool: 🥇 50% • 🥈 30% • 🥉 20%
+                    The champion claims the entire prize pool: 🏆 100% to the winner!
                   </CardDescription>
                 </CardContent>
               </Card>

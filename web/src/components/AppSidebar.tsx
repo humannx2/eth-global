@@ -14,7 +14,8 @@ import {
   Trophy, 
   Target, 
   Home,
-  Plus
+  Plus,
+  Video
 } from 'lucide-react'
 import { WalletWidget } from './WalletWidget'
 import { NetworkSwitcher } from './NetworkSwitcher'
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Competitions', href: '/room', icon: Trophy },
   { name: 'Create Room', href: '/room/create', icon: Plus },
+  { name: 'My Videos', href: '/videos', icon: Video },
 ]
 
 interface AppSidebarProps {

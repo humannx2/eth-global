@@ -331,20 +331,11 @@ export default function CreateRoomPage() {
                   </p>
                   {stakeAmount && (
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
-                      <div className="text-sm font-medium text-green-800 mb-2">💰 Prize Distribution (per participant):</div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="text-center">
-                          <div className="font-semibold text-yellow-600">🥇 1st</div>
-                          <div>{(parseFloat(stakeAmount || '0') * 0.5).toFixed(3)} ETH</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-gray-600">🥈 2nd</div>
-                          <div>{(parseFloat(stakeAmount || '0') * 0.3).toFixed(3)} ETH</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-amber-600">🥉 3rd</div>
-                          <div>{(parseFloat(stakeAmount || '0') * 0.2).toFixed(3)} ETH</div>
-                        </div>
+                      <div className="text-sm font-medium text-green-800 mb-2">💰 Prize Distribution:</div>
+                      <div className="text-center">
+                        <div className="font-semibold text-yellow-600">🏆 Winner Takes All</div>
+                        <div className="text-lg font-bold">{stakeAmount} ETH per participant</div>
+                        <div className="text-xs text-green-600 mt-1">100% to the champion!</div>
                       </div>
                     </div>
                   )}
