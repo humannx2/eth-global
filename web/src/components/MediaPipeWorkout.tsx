@@ -30,6 +30,9 @@ import {
   getExerciseConfig 
 } from '@/lib/mediapipe-utils'
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
+import { FitStakeAgent } from '@/lib/fitstake-agent-client'
+
+
 
 interface MediaPipeWorkoutProps {
   exerciseType: string
@@ -87,7 +90,16 @@ export function MediaPipeWorkout({
   const [lastProcessedRepCount, setLastProcessedRepCount] = useState(0)
   const [repSegments, setRepSegments] = useState<RepSegment[]>([])
   
-  // Frame rate limiting for performance optimization
+  // AI Agent for cheat detection and storage
+  const [agent] = useState(() => new FitStakeAgent());
+  const [aiAlert, setAiAlert] = useState<{ message: string; level: 'warning' | 'error' } | null>(null);
+  const [workoutViolations, setWorkoutViolations] = useState<Array<{
+    isSuspicious: boolean
+    reason: string
+    confidence: number
+    timestamp: number
+  }>>([]);
+  const [workoutStartTime, setWorkoutStartTime] = useState<number>(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<number>(0)
   const mediapipeTimestampRef = useRef<number>(0)
   const DETECTION_INTERVAL_MS = 100 // 10 FPS (1000ms / 10 = 100ms)
@@ -554,16 +566,22 @@ export function MediaPipeWorkout({
     try {
       await startCamera()
       setIsWorkoutActive(true)
+      
+      // Initialize workout session state
+      setWorkoutStartTime(Date.now())
       setPoseHistory([])
       setRepCount(0)
       setLastProcessedRepCount(0)
       setRepSegments([])
       setFormScore(0)
       setFeedback('')
+      setWorkoutViolations([])
+      setAiAlert(null)
       
       // Reset MediaPipe timestamp for clean state
       mediapipeTimestampRef.current = 0
       
+      console.log('🏋️ Workout started with 0G AI monitoring')
       onWorkoutStart?.()
     } catch (error) {
       console.error('Failed to start workout:', error)
@@ -591,22 +609,15 @@ export function MediaPipeWorkout({
     }
   }, [isWorkoutActive, isCameraActive, poseLandmarker, isDetecting])
 
-  // Stop workout
-  const stopWorkout = () => {
+  // Stop workout and store session
+  const stopWorkout = async () => {
+    const endTime = Date.now()
+    
     setIsDetecting(false)
     setIsWorkoutActive(false)
     stopCamera()
-    // Reset all workout state for a clean restart
-    setPoseHistory([])
-    setRepCount(0)
-    setLastProcessedRepCount(0)
-    setRepSegments([])
-    setFormScore(0)
-    setFeedback('')
     
-    // Reset MediaPipe timestamp for next session
-    mediapipeTimestampRef.current = 0
-    // Generate session data
+    // Generate session data before resetting state
     const sessionData = JSON.stringify({
       exerciseType,
       repCount,
@@ -614,8 +625,50 @@ export function MediaPipeWorkout({
       duration: poseHistory.length > 0 ? 
         (poseHistory.length * 33) / 1000 : 0, // Assuming ~30fps = 33ms per frame
       poseCount: poseHistory.length,
-      segments: repSegments
+      segments: repSegments,
+      violations: workoutViolations.length
     })
+
+    // Store workout session if connected to wallet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' })
+        if (accounts.length > 0) {
+          console.log('💾 Storing workout session...')
+          const storedSessionId = await agent.storeWorkoutSession(
+            accounts[0], // userAddress
+            exerciseType,
+            workoutStartTime,
+            endTime,
+            repCount,
+            workoutViolations,
+            poseHistory, // pose data
+            'medium' // difficulty
+          )
+          
+          if (storedSessionId) {
+            console.log('✅ Workout session stored:', storedSessionId)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to store workout session:', error)
+      }
+    }
+    
+    // Reset all workout state for a clean restart
+    setPoseHistory([])
+    setRepCount(0)
+    setLastProcessedRepCount(0)
+    setRepSegments([])
+    setFormScore(0)
+    setFeedback('')
+    setWorkoutViolations([])
+    setWorkoutStartTime(0)
+    
+    // Reset MediaPipe timestamp for next session
+    mediapipeTimestampRef.current = 0
 
     onWorkoutComplete({
       repCount,
@@ -626,6 +679,51 @@ export function MediaPipeWorkout({
 
     onWorkoutStop?.()
   }
+
+  const analyzeWithAI = useCallback(async (poseHistory: Pose[]) => {
+    if (poseHistory.length % 10 !== 0) return; // Analyze every 10 frames
+    if (poseHistory.length === 0) return; // No poses to analyze
+
+    // Get the most recent pose for analysis
+    const currentPose = poseHistory[poseHistory.length - 1];
+    
+    // Convert pose history to the format expected by the agent (last 20 poses)
+    const timeWindow = poseHistory.slice(-20);
+    
+    try {
+      const analysis = await agent.detectRealTimeAnomalies(
+        currentPose, // This is already Landmark[] (same as PoseLandmark[])
+        exerciseType,
+        repCount,
+        timeWindow // This is already Landmark[][] (same as PoseLandmark[][])
+      );
+      
+      if (analysis.isSuspicious) {
+        // Record the violation for the workout session
+        setWorkoutViolations(prev => [...prev, {
+          isSuspicious: true,
+          reason: analysis.reason,
+          confidence: analysis.confidence,
+          timestamp: analysis.timestamp
+        }]);
+        
+        setAiAlert({
+          message: `AI Alert: ${analysis.reason} (Confidence: ${Math.round(analysis.confidence * 100)}%)`,
+          level: analysis.confidence > 0.9 ? 'error' : 'warning'
+        });
+      } else {
+        setAiAlert(null);
+      }
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+    }
+  }, [agent, exerciseType, repCount]);
+
+  useEffect(() => {
+    if (isWorkoutActive && poseHistory.length > 0) {
+      analyzeWithAI(poseHistory);
+    }
+  }, [poseHistory, isWorkoutActive, analyzeWithAI]);
 
   return (
     <div className="space-y-6 w-full max-w-6xl mx-auto">
@@ -882,6 +980,16 @@ export function MediaPipeWorkout({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-base">
                   {error || initError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* AI-generated Alerts */}
+            {aiAlert && (
+              <Alert variant={aiAlert.level === 'error' ? 'destructive' : 'default'} className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {aiAlert.message}
                 </AlertDescription>
               </Alert>
             )}
