@@ -136,7 +136,7 @@ export class FitStakeAgent {
 
     } catch (error) {
       console.error('❌ Cheat detection failed:', error)
-      return this.getBasicCheatDetection(currentPose, exerciseType, repCount)
+      return this.getBasicCheatDetection(currentPose, exerciseType)
     }
   }
 
@@ -243,9 +243,13 @@ export class FitStakeAgent {
    */
   async getNetworkStatus(): Promise<{ compute: boolean, storage: boolean }> {
     try {
-      // TODO: Add server-side status endpoint
-      return { compute: true, storage: true }
-    } catch (error) {
+      const response = await fetch(`${this.baseUrl}/health`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { compute: data.compute || false, storage: data.storage || false }
+    } catch {
       return { compute: false, storage: false }
     }
   }
@@ -299,8 +303,7 @@ export class FitStakeAgent {
    */
   private getBasicCheatDetection(
     pose: PoseLandmark[], 
-    exerciseType: string,
-    repCount: number = 0
+    exerciseType: string
   ): CheatDetectionResult {
     // Calculate average visibility across all landmarks
     const avgVisibility = pose.reduce((acc, landmark) => 

@@ -546,7 +546,7 @@ function detectPeaksAndValleysAdvanced(
 /**
  * Calculate form score for a rep based on angle data quality and target ranges
  */
-function calculateRepFormScore(repAngles: AngleData[], _exerciseConfig: ExerciseConfig): number {
+function calculateRepFormScore(repAngles: AngleData[]): number {
   if (repAngles.length === 0) return 0;
   
   // Since AngleData doesn't have jointName, we'll use a simplified approach
@@ -591,7 +591,6 @@ function calculateRepFormScore(repAngles: AngleData[], _exerciseConfig: Exercise
   
   return Math.max(0, Math.min(100, Math.round(formScore)));
 }
-
 /**
  * Processes a history of poses to count repetitions using comprehensive multi-joint tracking.
  * Improved implementation based on fit-wise patterns
@@ -599,8 +598,7 @@ function calculateRepFormScore(repAngles: AngleData[], _exerciseConfig: Exercise
 export function segmentReps(
   poseHistory: Pose[], 
   exerciseConfig: ExerciseConfig, 
-  lastProcessedRepCount: number = 0,
-  _feedbackOptions: FeedbackOptions = {}
+  lastProcessedRepCount: number = 0
 ): { 
   repCount: number; 
   newRepSegments: RepSegment[];
@@ -718,7 +716,7 @@ export function segmentReps(
           
           if (repAngles.length > 0) {
             // Calculate form score based on angle consistency and target ranges
-            const formScore = calculateRepFormScore(repAngles, exerciseConfig);
+            const formScore = calculateRepFormScore(repAngles);
             
             const repSegment: RepSegment = {
               repNumber: repCount,
@@ -793,7 +791,7 @@ export async function processExerciseReps(
   console.log('Processing reps with config:', exerciseConfig);
   
   // Process reps using the configuration
-  const result = segmentReps(poseHistory, exerciseConfig, lastProcessedRepCount, feedbackOptions);
+  const result = segmentReps(poseHistory, exerciseConfig, lastProcessedRepCount);
   
   return {
     ...result,
